@@ -1,15 +1,15 @@
-#include "FileWriter.h"
+#include "IO/FileWriter.h"
 
-namespace SPMEditor::FileWriter
+namespace SPMEditor
 {
-    void WriteFile(string path, vector<u8> data)
+    void FileWriter::WriteFile(const std::string& path, const std::vector<u8>& data)
     {
         WriteFile(path, data.data(), data.size());
     }
 
-    void WriteFile(string path, u8* data, int length)
+    void FileWriter::WriteFile(const std::string& path, const u8* data, int length)
     {
-        ofstream file(path, ios::out | ios::binary);
+        std::ofstream file(path, std::ios::out | std::ios::binary);
         file.write((char*)data, length);
     }
 }

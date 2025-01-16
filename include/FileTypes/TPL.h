@@ -1,6 +1,4 @@
 #pragma once
-#include "PCH.h"
-
 namespace SPMEditor
 {
     struct TPL
@@ -72,20 +70,20 @@ namespace SPMEditor
             struct Image
             {
                 ImageHeader header;
-                string name;
-                vector<Color> pixels;
+                std::string name;
+                std::vector<Color> pixels;
             };
 
-            vector<Image> images;
+            std::vector<Image> images;
 
-            static TPL LoadFromFile(string path);
-            static TPL LoadFromBytes(vector<u8> data);
+            static TPL LoadFromFile(const std::string& path);
+            static TPL LoadFromBytes(const std::vector<u8>& data);
 
         private:
             static void GetBlockSize(ImageHeader::Format format, int& width, int& height);
-            static vector<Color> ReadBlock(u8* data, ImageHeader header, int xPos, int yPos);
-            static vector<Color> ReadImage(u8* data, ImageHeader imageHeader);
-            static vector<Color> ReadCMPRBlock(u8* data);
-            static vector<Color> ReadRGBA32Block(u8* data);
+            static std::vector<Color> ReadBlock(const u8* data, ImageHeader header, int xPos, int yPos);
+            static std::vector<Color> ReadImage(const u8* data, ImageHeader imageHeader);
+            static std::vector<Color> ReadCMPRBlock(const u8* data);
+            static std::vector<Color> ReadRGBA32Block(const u8* data);
     };
 }

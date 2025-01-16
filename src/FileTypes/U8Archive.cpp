@@ -11,14 +11,14 @@
 namespace SPMEditor {
     struct Directory
     {
-        string name;
-        vector<U8Archive::File> files;
-        vector<Directory> subdirs;
+        std::string name;
+        std::vector<U8Archive::File> files;
+        std::vector<Directory> subdirs;
 
-        U8Archive::File& operator[](string path)
+        U8Archive::File& operator[](const std::string& path)
         {
             // Get root node
-            string next = path;
+            std::string next = path;
 
             // If it has a directory then a file
             int separator = path.find_first_of('/');
@@ -43,19 +43,19 @@ namespace SPMEditor {
                }
             }
 
-                cout << "Failed to find file at path '"<<path<<"'"<<endl;
+            LogError("Failed to find file at path '{}'", path);
             U8Archive::File file;
             return file;
         }
 
-        void AddFile(string path, U8Archive::File file)
+        void AddFile(const std::string& path, U8Archive::File file)
         {
             // If it references a directory first
             int separator = path.find_first_of('/');
             if (separator != path.npos)
             {
-                string dirName = path.substr(0, separator);
-                string remainingPath = path.substr(separator + 1);
+                const std::string& dirName = path.substr(0, separator);
+                const std::string& remainingPath = path.substr(separator + 1);
 
                 for (int i = 0; i < subdirs.size(); i++) {
                     // Find the next subdir in the path then tell it to create the file
@@ -112,23 +112,23 @@ namespace SPMEditor {
         }
     };
 
-    bool U8Archive::Exists(string path)
+    bool U8Archive::Exists(const std::string& path)
     {
         return files.find(path) != files.end();
     }
 
-    U8Archive::File& U8Archive::operator[](string path)
+    U8Archive::File& U8Archive::operator[](const std::string& path)
     {
         return files[path];
     }
 
-    U8Archive U8Archive::ReadFromFile(string path, bool compressed)
+    U8Archive U8Archive::ReadFromFile(const std::string& path, bool compressed)
     {
-        vector<u8> data = FileReader::ReadFileBytes(path);
-        return ReadFromBytes(data);
+        const std::vector<u8> data = FileReader::ReadFileBytes(path);
+        return ReadFromBytes(data, compressed);
     }
 
-    void U8Archive::ReadVirtualDirectory(unordered_map<string, File>& files, vector<u8> data, Node* nodes, int numNodes, int& index, string path)
+    void U8Archive::ReadVirtualDirectory(std::unordered_map<std::string, File>& files, const u8* data, Node* nodes, int numNodes, int& index, const std::string& path)
     { 
         int stringSectionStart = sizeof(Header) + numNodes * sizeof(Node);
 
@@ -136,7 +136,7 @@ namespace SPMEditor {
         ByteSwap2(&dirNode, 2);
         ByteSwap4(&dirNode.dataOffset, 2);
 
-        string name = (char*)(data.data() + stringSectionStart + dirNode.nameOffset); // C++ is great
+        std::string name = (char*)(data + stringSectionStart + dirNode.nameOffset); 
 
         while (index < dirNode.size)
         {
@@ -146,12 +146,12 @@ namespace SPMEditor {
             ByteSwap4(&node.dataOffset, 2);
 
             // Read the node name
-            name = (char*)(data.data() + stringSectionStart + node.nameOffset); // C++ is great
+            name = (char*)(data + stringSectionStart + node.nameOffset);
 
             bool isDirectory = (node.type & 0x100) != 0;
             if (isDirectory)
             {
-                string nextPath = name;
+                std::string nextPath = name;
                 if (path.size() > 0) // Added to prevent the path from starting with / and not ./
                     nextPath = path + "/" + name;
 
@@ -161,30 +161,31 @@ namespace SPMEditor {
             {
                 File file;
                 file.name = name;
-                file.data = vector<u8>(data.data() + node.dataOffset, data.data() + node.dataOffset + node.size);
-                string filePath = path + "/" + name;
+                file.data = std::vector<u8>(data + node.dataOffset, data + node.dataOffset + node.size);
+                std::string filePath = path + "/" + name;
                 files[filePath] = file;
                 index++;
             }
         }
     }
 
-    U8Archive U8Archive::ReadFromBytes(vector<u8> data, bool compressed)
+    U8Archive U8Archive::ReadFromBytes(const std::vector<u8>& input, bool compressed)
     {
+        static std::vector<u8> decompressed;
+        const u8* data = input.data();
         if (compressed)
-            data = LZSS::DecompressBytes(data);
-
-        // Check the data is a u8 file
-        if (*(int*)data.data() != 0x2D38AA55)
         {
-            cout << "Data is not a valid u8 archive." << endl;
-            return U8Archive();
+            decompressed = LZSS::DecompressBytes(input.data(), input.size());
+            data = decompressed.data();
         }
 
-        // Read node table
-        int numNodes = ByteSwap(*(int*)(data.data() + 0x28)); // Basically jump to the size of the root node
+        // Check the data is a u8 file
+        Assert(*(int*)data == 0x2D38AA55, "Data is not a valid u8 archive. Magic: 0x{:x} != 0x2D38AA55", *(int*)data);
 
-        Node* nodes = (Node*)(data.data() + sizeof(Header));
+        // Read node table
+        int numNodes = ByteSwap(*(int*)(data + 0x28)); // Basically jump to the size of the root node
+
+        Node* nodes = (Node*)(data + sizeof(Header));
 
         U8Archive archive;
         int index = 0;
@@ -192,14 +193,14 @@ namespace SPMEditor {
         return archive;
     } 
 
-    Directory CreateDirectory(U8Archive archive, string parentPath, int& totalNodeCount)
+    Directory CreateDirectory(U8Archive archive, const std::string& parentPath, int& totalNodeCount)
     {
         // Do files first
         Directory dir;
         for (auto file : archive.files)
         {
             // Skip over things that are not part of this directory
-            filesystem::path path(file.first);
+            std::filesystem::path path(file.first);
             if (path.parent_path() != parentPath)
                 continue;
 
@@ -215,7 +216,7 @@ namespace SPMEditor {
         for (auto file : archive.files)
         {
             // Skip over things that are not part of this directory
-            filesystem::path path(file.first);
+            std::filesystem::path path(file.first);
             if (path.parent_path() != parentPath)
                 continue;
 
@@ -279,10 +280,11 @@ namespace SPMEditor {
             namePosition += file.name.size() + 1;
 
             memcpy(data + dataOffset, file.data.data(), file.data.size());
+            
             dataOffset += file.data.size();
-            cout << "Rounded data offset from " << dec << dataOffset;
+            int oldDataOffset = dataOffset;
             dataOffset += 0x40 - (dataOffset - 0x20) % 0x40;
-            cout << " to " << dataOffset <<endl;
+            LogInfo("Rounded data offset from {} to {}", oldDataOffset, dataOffset);
         }
 
         sort(dir.subdirs.begin(), dir.subdirs.end(), SortDirectories);
@@ -291,7 +293,7 @@ namespace SPMEditor {
 
     }
 
-    vector<u8> U8Archive::CompileU8()
+    std::vector<u8> U8Archive::CompileU8()
     {
         // Calculate total file size
         Directory root = CreateRootDirectory(*this);
@@ -309,8 +311,8 @@ namespace SPMEditor {
             fileSize += 0x40 - (fileSize - 0x20) % 0x40;
         }
 
-        vector<u8> output(fileSize);
-        cout << "U8 Total size: " << dec << fileSize << endl;
+        std::vector<u8> output(fileSize);
+        LogInfo("U8 Total size: {}", fileSize);
 
         // Create the header
         U8Archive::Header* header = (U8Archive::Header*)(output.data());
@@ -330,24 +332,24 @@ namespace SPMEditor {
         return output;
     }
 
-    void U8Archive::Dump(string outputPath)
+    void U8Archive::Dump(const std::string& outputPath)
     {
         // Calculate total file size
         if (files.size() <= 0)
             return;
-        filesystem::create_directories(outputPath);
+        std::filesystem::create_directories(outputPath);
 
         for (auto pair : files)
         {
-            string path = pair.first;
-            filesystem::path filePath(path);
+            const std::string path = pair.first;
+            std::filesystem::path filePath(path);
 
             if (filePath.has_parent_path())
             {
-                string parentPath = filePath.parent_path().string();
+                std::string parentPath = filePath.parent_path().string();
                 if (parentPath.find("./") != parentPath.npos)
                     parentPath = parentPath.replace(parentPath.find("./"), 2, "");
-                filesystem::create_directories(outputPath + "/" + parentPath);
+                std::filesystem::create_directories(outputPath + "/" + parentPath);
             }
 
             FileWriter::WriteFile(outputPath + "/" + path, pair.second.data);
@@ -355,30 +357,25 @@ namespace SPMEditor {
     }
 
 
-    bool U8Archive::TryCreateFromDirectory(string path, U8Archive& output)
+    bool U8Archive::TryCreateFromDirectory(const std::string& path, U8Archive& output)
     {
-        if (!filesystem::is_directory(path))
-        {
-            cout << "Trying to create u8 archive from invalid directory: '" << path << "'" << endl;
-            output = U8Archive();
-            return false;
-        }
+        Assert(std::filesystem::is_directory(path), "Trying to create u8 archive but {} is not a directory.", path);
 
-        for (const auto entry : filesystem::recursive_directory_iterator(path))
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(path))
         {
             if (!entry.is_regular_file())
                 continue;
 
             File file;
-            filesystem::path filePath = filesystem::path(entry);
+            std::filesystem::path filePath(entry);
             file.name = filePath.filename();
-            vector<u8> data = FileReader::ReadFileBytes(filePath);
-            file.data = vector<u8>(data.size());
+            const std::vector<u8>& data = FileReader::ReadFileBytes(filePath);
+            file.data = std::vector<u8>(data.size());
             for (int i = 0; i < data.size(); i++) {
                 file.data[i] = data[i]; 
             }
 
-            string key = filePath.string().replace(0, path.size(), ".");
+            const std::string& key = filePath.string().replace(0, path.size(), ".");
             output.files[key] = file;
         }
 

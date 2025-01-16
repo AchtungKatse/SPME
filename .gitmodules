@@ -1,27 +1,12 @@
 [submodule "dependencies/stb"]
 	path = dependencies/stb
-	url = git@github.com:nothings/stb.git
-[submodule "dependencies/OpenUSD"]
-	path = dependencies/OpenUSD
-	url = git@github.com:PixarAnimationStudios/OpenUSD.git
-[submodule "dependencies/fx-gltf"]
-	path = dependencies/fx-gltf
-	url = git@github.com:jessey-git/fx-gltf.git
-[submodule "dependencies/tinygltf"]
-	path = dependencies/tinygltf
-	url = git@github.com:syoyo/tinygltf.git
+	url = https://github.com/nothings/stb.git
 [submodule "dependencies/assimp"]
 	path = dependencies/assimp
-	url = git@github.com:assimp/assimp.git
-[submodule "dependencies/json"]
-	path = dependencies/json
-	url = git@github.com:nlohmann/json.git
-[submodule "dependencies/base64"]
-	path = dependencies/base64
-	url = git@github.com:aklomp/base64.git
+	url = https://github.com/assimp/assimp.git
 [submodule "dependencies/fpng"]
 	path = dependencies/fpng
-	url = git@github.com:richgel999/fpng.git
-[submodule "vendor/spdlog"]
+	url = https://github.com/richgel999/fpng.git
+[submodule "dependencies/spdlog"]
 	path = dependencies/spdlog
 	url = https://github.com/gabime/spdlog.git

@@ -1,15 +1,15 @@
-#include "FileReader.h"
+#include "IO/FileReader.h"
 
-namespace SPMEditor::FileReader {
-    std::vector<u8> ReadFileBytes(string path)
+namespace SPMEditor {
+    std::vector<u8> FileReader::ReadFileBytes(const std::string& path)
     {
         Assert(std::filesystem::exists(path), "Failed to find file '{}'", path);
 
-        ifstream file (path, ios::binary | ios::ate);
+        std::ifstream file (path, std::ios::binary | std::ios::ate);
         int size = file.tellg();
-        file.seekg(0, ios::beg);
+        file.seekg(0, std::ios::beg);
 
-        vector<u8> data(size);
+        std::vector<u8> data(size);
         file.read((char*)data.data(), size);
 
         Assert(size > 0, "Error reading file '{}', invalid size '{}'", path, size);

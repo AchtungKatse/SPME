@@ -1,17 +1,18 @@
-#include "LevelData.h"
+#include "FileTypes/LevelData.h"
 #include "FileTypes/LevelGeometry/LevelGeometry.h"
 #include "FileTypes/U8Archive.h"
 #include "IO/FileReader.h"
+#include "assimp/material.h"
 
 namespace SPMEditor {
-    LevelData LevelData::LoadLevelFromFile(string path, bool compressed)
+    LevelData LevelData::LoadLevelFromFile(const std::string& path, bool compressed)
     {
         Assert(std::filesystem::exists(path), "Failed to find file {}", path);
-        filesystem::path filePath(path);
-        const vector<u8>& data = FileReader::ReadFileBytes(path);
+        std::filesystem::path filePath(path);
+        const std::vector<u8>& data = FileReader::ReadFileBytes(path);
         
-        string fileName = filePath.filename();
-        string name = fileName.substr(0, fileName.size() - 4);
+        const std::string& fileName = filePath.filename();
+        const std::string& name = fileName.substr(0, fileName.size() - 4);
 
         LogInfo("Loaded file '{}'", fileName);
 
@@ -20,46 +21,46 @@ namespace SPMEditor {
 
     void ReadMat(aiMaterial* mat)
     {
-        cout << "Reading material: " << mat->GetName().C_Str() << endl;
+        LogInfo("Reading material: {}", mat->GetName().C_Str());
         for (int i = 0; i < mat->mNumProperties; i++) {
             auto prop = mat->mProperties[i];
-            cout << "\tProperty Key: " << prop->mKey.C_Str();
+            LogInfo("\tProperty Key: ", prop->mKey.C_Str());
 
-            if (prop->mType == 3)
-                cout << "; Text: '" << ((aiString*)prop->mData)->C_Str() << "'";
-            if (prop->mType == 4)
-                cout << "; Value: " << *((int*)prop->mData);
+            if (prop->mType == aiPropertyTypeInfo::aiPTI_String)
+                LogInfo("\tText: '{}'", ((aiString*)prop->mData)->C_Str());
+            if (prop->mType == aiPropertyTypeInfo::aiPTI_Integer)
+                LogInfo("\tValue: ", *((int*)prop->mData));
 
-            cout << "\n\t\tType: " << prop->mType << "; Index: " << prop->mIndex << "; Length: " << prop->mDataLength << "; Semantic: " << prop->mSemantic; 
-            cout << endl << endl;
+            LogInfo("\n\t\tType: {}; Index: {}; Length: {}; Semantic: {}", (int)prop->mType, prop->mIndex, prop->mDataLength, prop->mSemantic);
         }
     }
 
-    LevelData LevelData::LoadLevelFromBytes(string name, const vector<u8>& data, bool compressed)
+    LevelData LevelData::LoadLevelFromBytes(const std::string& name, const std::vector<u8>& data, bool compressed)
     {
-        const auto baseArchive = U8Archive::ReadFromBytes(data);
+        const auto baseArchive = U8Archive::ReadFromBytes(data, compressed);
 
         LevelData level;
-        level.files = baseArchive;
+        level.u8Files = baseArchive;
         level.name = name;
 
         // Load level geometry
         // Grab texturesE
-        U8Archive::File& textureFile = level.files["./dvd/map/" + name + "/texture.tpl"];
+        U8Archive::File& textureFile = level.u8Files["./dvd/map/" + name + "/texture.tpl"];
         TPL tpl = TPL::LoadFromBytes(textureFile.data);
 
         // Load main map data
-        string mapPath = "./dvd/map/" + name + "/map.dat";
-        if (!level.files.Exists(mapPath))
+        const std::string& mapPath = fmt::format("./dvd/map/{}/map.dat", name);
+        if (!level.u8Files.Exists(mapPath))
         {
-            for (auto pair : level.files.files)
+            for (auto pair : level.u8Files.files)
             {
-                cout << "\t" << pair.first << endl;
+                LogError("\t{}", pair.first);
             }
-            cout << "Level does not contain path '" << mapPath << "'" << endl;
+
+            LogError("Level does not contain path '{}'", mapPath);
             return level;
         }
-        auto map = level.files[mapPath];
+        auto map = level.u8Files[mapPath];
         level.geometry = LevelGeometry::LoadFromBytes(map.data, tpl);
 
         return level;

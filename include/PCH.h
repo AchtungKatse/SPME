@@ -12,5 +12,4 @@
 
 #include "Utility/SPMEAssert.h"
 #include "Utility/Logging.h"
-
-using namespace std;
+#include "Utility/str2int.h"

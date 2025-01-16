@@ -1,9 +1,7 @@
 #include "FileTypes/TPL.h"
 #include "IO/FileReader.h"
 #include "Types/Types.h"
-#include <filesystem>
 #include "stb_image_write.h"
-#include <string>
 
 namespace SPMEditor {
 
@@ -30,20 +28,15 @@ namespace SPMEditor {
         ByteSwap((int*)this + 1, 7);
     }
 
-    TPL TPL::LoadFromFile(string path)
+    TPL TPL::LoadFromFile(const std::string& path)
     {
-        vector<u8> data = FileReader::ReadFileBytes(path);
+        const std::vector<u8>& data = FileReader::ReadFileBytes(path);
         return LoadFromBytes(data);
     }
 
-    TPL TPL::LoadFromBytes(vector<u8> data)
+    TPL TPL::LoadFromBytes(const std::vector<u8>& data)
     {
-        // Error checking
-        if (data.size() < sizeof(Header))
-        {
-            cout << "Cannot read TPL from data size of " << data.size() << endl;
-            return TPL();
-        }
+        Assert(data.size() >= sizeof(Header), "Cannot read TPL from data size of {}", data.size());
 
         // Grab header
         Header header = *(Header*)(data.data());
@@ -125,14 +118,14 @@ namespace SPMEditor {
         }
     }
 
-    vector<Color> TPL::ReadImage(u8* data, ImageHeader imageHeader)
+    std::vector<Color> TPL::ReadImage(const u8* data, ImageHeader imageHeader)
     {
         int blockWidth;
         int blockHeight;
         GetBlockSize(imageHeader.format, blockWidth, blockHeight);
 
         // Debugging
-        string formatNames[] = {
+        const std::string formatNames[] = {
             "I4",
             "I8",
             "IA4",
@@ -154,10 +147,10 @@ namespace SPMEditor {
         int numBlocksX = imageHeader.width / blockWidth + (imageHeader.width % blockWidth > 0 ? 1 : 0);
         int numBlocksY = imageHeader.height / blockHeight + (imageHeader.height % blockHeight > 0 ? 1 : 0);
 
-        vector<Color> pixels(imageHeader.width * imageHeader.height);
+        std::vector<Color> pixels(imageHeader.width * imageHeader.height);
         for (int blockY = 0; blockY < numBlocksY; blockY++) {
             for (int blockX = 0; blockX < numBlocksX; blockX++) {
-                vector<Color> blockColors = ReadBlock(data, imageHeader, blockX * blockWidth, blockY * blockHeight);
+                const std::vector<Color>& blockColors = ReadBlock(data, imageHeader, blockX * blockWidth, blockY * blockHeight);
 
                 if (imageHeader.format == ImageHeader::Format::RGBA32)
                     data += 64;
@@ -185,7 +178,7 @@ namespace SPMEditor {
         return pixels;
     }
 
-    vector<Color> TPL::ReadBlock(u8* data, ImageHeader header, int xPos, int yPos)
+    std::vector<Color> TPL::ReadBlock(const u8* data, ImageHeader header, int xPos, int yPos)
     {
         // Special cases for formats that hurt my soul
         switch (header.format)
@@ -209,7 +202,7 @@ namespace SPMEditor {
 
         // Go through each block on the x any y axis and read each pixel depending on the format
         // I should probably move the switch to a seperate function, the indents hurt my eyes and soul
-        vector<Color> pixels;
+        std::vector<Color> pixels;
         // pixels.resize(blockWidth * blockHeight);
         for (int y = 0, i = 0; y < blockHeight; y++) {
             for (int x = 0; x < blockWidth; x++) {
@@ -315,20 +308,20 @@ namespace SPMEditor {
         return Color(r,g,b,0xff);
     }
 
-    vector<Color> TPL::ReadRGBA32Block(u8* data)
+    std::vector<Color> TPL::ReadRGBA32Block(const u8* data)
     {
-        vector<Color> colors(16);
+        std::vector<Color> colors(16);
         for (int i = 0; i < 16; i++) {
-            u8* ptr = data + i * 2;
+            const u8* ptr = data + i * 2;
             colors[i] = Color(ptr[1], ptr[33], ptr[34], ptr[0]);
         }
 
         return colors;
     }
 
-    vector<Color> TPL::ReadCMPRBlock(u8* data)
+    std::vector<Color> TPL::ReadCMPRBlock(const u8* data)
     {
-        vector<Color> pixels(64);
+        std::vector<Color> pixels(64);
         for (int i = 0; i < pixels.size(); i++) {
            pixels[i] = Color(255, 0, 255, 255); 
         }

@@ -44,7 +44,7 @@ namespace SPMEditor::LevelInternal
     struct Section
     {
         int fileOffset;
-        string name;
+        std::string name;
     };
 
     struct InfoHeader
