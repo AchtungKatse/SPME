@@ -368,8 +368,8 @@ namespace SPMEditor {
 
             File file;
             std::filesystem::path filePath(entry);
-            file.name = filePath.filename();
-            const std::vector<u8>& data = FileReader::ReadFileBytes(filePath);
+            file.name = filePath.filename().string();
+            const std::vector<u8>& data = FileReader::ReadFileBytes(filePath.string());
             file.data = std::vector<u8>(data.size());
             for (int i = 0; i < data.size(); i++) {
                 file.data[i] = data[i]; 

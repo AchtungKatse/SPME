@@ -1,4 +1,12 @@
 #pragma once
+#ifdef __GNUC__
+#define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
+#endif
+
+#ifdef _MSC_VER
+#define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
+#endif
+
 namespace SPMEditor::LevelInternal
 {
     enum struct VertexAttributes : u32
@@ -10,7 +18,7 @@ namespace SPMEditor::LevelInternal
         UV = 0x10
     };
 
-    struct VertexStrip
+    PACK(struct VertexStrip
     {
         struct Header
         {
@@ -20,8 +28,9 @@ namespace SPMEditor::LevelInternal
 
         u8 unknown;
         u16 vertexCount;
-    }__attribute__((packed)); // Packing adds an extra u8 after unknown which breaks the vertex count
+    });
 
+    constexpr int vsSize = sizeof(VertexStrip);
     struct MeshHeader
     {
         int constant;

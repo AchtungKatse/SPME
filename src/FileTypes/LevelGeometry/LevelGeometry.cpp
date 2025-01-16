@@ -108,10 +108,13 @@ namespace SPMEditor {
                 return;
             case str2int("information"):
                 {
+                    LogTrace("Creating meshes");
                     std::vector<aiMesh*> meshes;
+                    LogTrace("Creating root node");
                     scene->mRootNode = ReadInfo(section.fileOffset, meshes);
                     scene->mNumMeshes = meshes.size();
                     scene->mMeshes = new aiMesh*[meshes.size()];
+                    LogTrace("Setting meshes");
                     for (int i = 0; i < scene->mNumMeshes; i++) {
                         scene->mMeshes[i] = meshes[i];
                     }
@@ -154,22 +157,25 @@ namespace SPMEditor {
     {
         // Read the header
         int* headerPtr = (int*)(s_Data + offset);
+        LogTrace("Header ptr: {:X}", (long)headerPtr);
 
         // Doing it this way instead of just casting the pointer to an info header
         // because char* is 8 bytes long while the offsets in the header are only 4 bytes long
         InfoHeader info;
-        info.version = (char*)(long)ByteSwap(headerPtr[0]);
+        info.version = (char*)(long long)ByteSwap(headerPtr[0]);
         info.objHeirarchyOffset = ByteSwap(headerPtr[1]);
-        info.rootObjName = (char*)(long)ByteSwap(headerPtr[2]);
-        info.rootTriggerName = (char*)(long)ByteSwap(headerPtr[3]);
-        info.timestamp = (char*)(long)ByteSwap(headerPtr[4]);
+        info.rootObjName = (char*)(long long)ByteSwap(headerPtr[2]);
+        info.rootTriggerName = (char*)(long long)ByteSwap(headerPtr[3]);
+        info.timestamp = (char*)(long long)ByteSwap(headerPtr[4]);
+        LogTrace("Read info header");
 
         // Add the data ptr to each pointer in the info header
         // because the offsets are relative to the start of the file (data)
-        info.version += (long)s_Data;
-        info.timestamp += (long)s_Data;
-        info.rootObjName += (long)s_Data;
-        info.rootTriggerName += (long)s_Data;
+        info.version += (long long)s_Data;
+        info.timestamp += (long long)s_Data;
+        info.rootObjName += (long long)s_Data;
+        info.rootTriggerName += (long long)s_Data;
+        LogTrace("Adding data ptr to info header string things");
 
         LogInfo("File version: {}", info.version);
         LogInfo("Root Obj: {}", info.rootObjName);

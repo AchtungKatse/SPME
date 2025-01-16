@@ -11,7 +11,7 @@ namespace SPMEditor {
         std::filesystem::path filePath(path);
         const std::vector<u8>& data = FileReader::ReadFileBytes(path);
         
-        const std::string& fileName = filePath.filename();
+        const std::string& fileName = filePath.filename().string();
         const std::string& name = fileName.substr(0, fileName.size() - 4);
 
         LogInfo("Loaded file '{}'", fileName);

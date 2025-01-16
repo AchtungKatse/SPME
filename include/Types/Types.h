@@ -64,34 +64,46 @@ typedef vec3<float> Vector3;
 
 typedef vec2<float> Vector2;
 
-inline u16 ByteSwap(u16 val)
-{
-    return __builtin_bswap16(val);
-}
-inline u32 ByteSwap(u32 val)
-{
-    return __builtin_bswap32(val);
-}
 inline short ByteSwap(short val)
 {
-    return __builtin_bswap16(val);
+    char* bytes = (char*)&val;
+    char newData[2];
+
+    newData[0] = bytes[1];
+    newData[1] = bytes[0];
+    return *(short*)newData;
 }
 inline int ByteSwap(int val)
 {
-    return __builtin_bswap32(val);
+    char* bytes = (char*)&val;
+    char newData[4];
+
+    newData[3] = bytes[0];
+    newData[2] = bytes[1];
+    newData[1] = bytes[2];
+    newData[0] = bytes[3];
+    return *(int*)newData;
+}
+inline u16 ByteSwap(u16 val)
+{
+    return ByteSwap((short)val);
+}
+inline u32 ByteSwap(u32 val)
+{
+    return ByteSwap((int)val);
 }
 
 inline void ByteSwap4(void* data, int elementCount)
 {
     for (int i = 0; i < elementCount; i++) {
-        ((int*)data)[i] = __builtin_bswap32(((int*)data)[i]);
+        ((int*)data)[i] = ByteSwap(((int*)data)[i]);
     }
 }
 
 inline void ByteSwap2(void* data, int elementCount)
 {
     for (int i = 0; i < elementCount; i++) {
-        ((u16*)data)[i] = __builtin_bswap16(((u16*)data)[i]);
+        ((u16*)data)[i] = ByteSwap(((u16*)data)[i]);
     }
 }
 

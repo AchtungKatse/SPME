@@ -6,6 +6,7 @@
 #include "FileTypes/LevelData.h"
 #include "assimp/Exporter.hpp"
 #include "assimp/postprocess.h"
+#include "spdlog/common.h"
 
 using namespace SPMEditor;
 using namespace std;
@@ -18,6 +19,7 @@ void LZSSCommands(int& i, int argc, char** argv);
 void ConvertCommand(int& i, int argc, char** argv);
 
 int main(int argc, char** argv) {
+    spdlog::set_level(spdlog::level::trace);
     for (int i = 1; i < argc; i++) {
         string command = argv[i];
         switch (str2int(command.c_str()))
@@ -117,7 +119,6 @@ void LZSSCommands(int& i, int argc, char** argv) {
             case str2int("--compress"):
                 {
                     Assert(argc - i <= 2, "Incorrect format: lzss --compress <input file> <output file>");
-                    break;
 
                     string input = argv[i + 1];
                     string output = argv[i + 2];
@@ -135,9 +136,9 @@ void LZSSCommands(int& i, int argc, char** argv) {
                     string input = argv[i + 1];
                     string output = argv[i + 2];
 
-                    Assert(std::filesystem::exists(input), "File '{}' Does not exist.", input)
+                    Assert(std::filesystem::exists(input), "File '{}' Does not exist.", input);
 
-                        const std::vector<u8>& compressed = FileReader::ReadFileBytes(input);
+                    const std::vector<u8>& compressed = FileReader::ReadFileBytes(input);
                     vector<u8> decompressed = LZSS::DecompressBytes(compressed.data(), compressed.size());
                     FileWriter::WriteFile(output, decompressed);
                     i += 2;
