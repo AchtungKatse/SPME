@@ -13,3 +13,5 @@
 #include "Utility/SPMEAssert.h"
 #include "Utility/Logging.h"
 #include "Utility/str2int.h"
+
+#include "glad/glad.h"

@@ -5,42 +5,42 @@
 
 namespace SPMEditor {
 
-    void TPL::Header::SwapBytes()
-
-    {
-        ByteSwap((int*)this, 3);
+    TPL::Header TPL::Header::SwapBytes() {
+        TPL::Header header = *this;
+        ByteSwap4(&header, 3);
+        return header;
     }
 
-    void TPL::ImageOffset::SwapBytes()
-    {
-        ByteSwap((int*)this, 2);
+    TPL::ImageOffset TPL::ImageOffset::SwapBytes() {
+        ImageOffset offset = *this;
+        ByteSwap4(&offset, 2);
+        return offset;
     }
 
-    void TPL::PaletteHeader::SwapBytes()
-    {
-        entryCount = ByteSwap(entryCount);
-        ByteSwap((int*)this + 1, 2);
+    TPL::PaletteHeader TPL::PaletteHeader::SwapBytes() {
+        PaletteHeader header = *this;
+        header.entryCount = ByteSwap(header.entryCount);
+        ByteSwap((int*)&header + 1, 2);
+        return header;
     }
 
-    void TPL::ImageHeader::SwapBytes()
-    {
-        ByteSwap((short*)this, 2);
-        ByteSwap((int*)this + 1, 7);
+    TPL::ImageHeader TPL::ImageHeader::SwapBytes() {
+        ImageHeader header = *this;
+        ByteSwap((short*)&header, 2);
+        ByteSwap((int*)&header+ 1, 7);
+        return header;
     }
 
-    TPL TPL::LoadFromFile(const std::string& path)
-    {
+    TPL TPL::LoadFromFile(const std::string& path) {
         const std::vector<u8>& data = FileReader::ReadFileBytes(path);
         return LoadFromBytes(data);
     }
 
-    TPL TPL::LoadFromBytes(const std::vector<u8>& data)
-    {
+    TPL TPL::LoadFromBytes(const std::vector<u8>& data) {
         Assert(data.size() >= sizeof(Header), "Cannot read TPL from data size of {}", data.size());
 
         // Grab header
-        Header header = *(Header*)(data.data());
-        header.SwapBytes(); // Yay big endian
+        Header header = ((Header*)data.data())->SwapBytes();
 
         // Get the image offset pointer
         ImageOffset* imageOffsets = (ImageOffset*)(data.data() + header.imageTableOffset);
@@ -50,26 +50,22 @@ namespace SPMEditor {
         tpl.images.resize(header.numImages);
         for (int i = 0; i < header.numImages; i++) {
             // Swap current image offset endianness
-            imageOffsets[i].SwapBytes();
+            ImageOffset imageOffset = imageOffsets[i].SwapBytes();
 
             // Get the palette
-            PaletteHeader* palette = 0;
-            if (imageOffsets->paletteOffset)
+            PaletteHeader palette;
+            if (imageOffset.paletteOffset)
             {
-                palette = (PaletteHeader*)(data.data() + imageOffsets[i].paletteOffset);
-                palette->SwapBytes();
+                palette = ((PaletteHeader*)(data.data() + imageOffset.paletteOffset))->SwapBytes();
             }
 
             // Create an image
             Image image;
-            image.header = *(ImageHeader*)(data.data() + imageOffsets[i].headerOffset);
-            image.header.SwapBytes();
+            image.header = ((ImageHeader*)(data.data() + imageOffset.headerOffset))->SwapBytes();
 
             // Read all the blocks
             image.pixels = ReadImage(data.data() + image.header.imageDataAddress, image.header);
             tpl.images[i] = image;
-
-            // stbi_write_png(("Images/" + to_string(i) + ".png").c_str(), image.header.width, (int)image.header.height, (int)STBI_rgb_alpha, image.pixels.data(), image.header.width * sizeof(Color));
         }
 
         return tpl;

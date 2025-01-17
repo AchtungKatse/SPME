@@ -1,4 +1,5 @@
 #include <filesystem>
+#include "Commands/Display/Display.h"
 #include "Compressors/LZSS.h"
 #include "IO/FileReader.h"
 #include "IO/FileWriter.h"
@@ -7,6 +8,7 @@
 #include "assimp/Exporter.hpp"
 #include "assimp/postprocess.h"
 #include "spdlog/common.h"
+#include "Commands/TPLCommands.h"
 
 using namespace SPMEditor;
 using namespace std;
@@ -27,6 +29,10 @@ int main(int argc, char** argv) {
             default:
                 LogInfo("Unrecognized command '{}'", command);
                 break;
+            case str2int("tpl"):
+                i++;
+                TPLCommands::Read(i, argc, argv);
+                break;
             case str2int("u8"):
                 i++;
                 U8(i, argc, argv);
@@ -39,7 +45,10 @@ int main(int argc, char** argv) {
                 i++;
                 ConvertCommand(i, argc, argv);
                 break;
-
+            case str2int("display"):
+                LevelData level = LevelData::LoadLevelFromFile(argv[i + 1], true);
+                Display::DisplayLevel(level);
+                break;
         }
     }
 
@@ -57,9 +66,9 @@ void U8(int& i, int argc, char** argv) {
                     i--;
                     return;
                 }
-            case str2int("--dump"):
+            case str2int("dump"):
                 {
-                    Assert(argc - i <= 2, "Incorrect format: u8 --dump <input file> <output directory>");
+                    Assert(i < argc - 2, "Incorrect format: u8 --dump <input file> <output directory>");
                     string input = argv[i + 1];
                     string output = argv[i + 2];
                     U8Dump(input, output);
@@ -67,7 +76,7 @@ void U8(int& i, int argc, char** argv) {
                     i += 2;
                     break;
                 }
-            case str2int("--compile"):
+            case str2int("compile"):
                 {
                     Assert(argc - i <= 3, "Incorrect format: u8 --compile <input file> <output directory> <compressed (0 = false, 1 = true)>");
 

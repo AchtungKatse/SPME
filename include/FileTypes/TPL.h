@@ -1,28 +1,25 @@
 #pragma once
 namespace SPMEditor
 {
-    struct TPL
+    class TPL
     {
         private:
-            struct Header
-            {
+            struct Header {
                 int magic;
                 int numImages;
                 int imageTableOffset;
 
-                void SwapBytes();
+                Header SwapBytes();
             };
 
-            struct ImageOffset
-            {
+            struct ImageOffset {
                 int headerOffset;
                 int paletteOffset;
 
-                void SwapBytes();
+                ImageOffset SwapBytes();
             };
 
-            struct PaletteHeader
-            {
+            struct PaletteHeader {
                 enum struct Format : u32 { IA8 = 0, RGB565 = 1, RGB5A3 = 2};
                 u16 entryCount;
                 u8 unpacked;
@@ -30,7 +27,7 @@ namespace SPMEditor
                 Format format;
                 u32 dataOffset;
 
-                void SwapBytes();
+                PaletteHeader SwapBytes();
             };
 
         public:
@@ -64,7 +61,7 @@ namespace SPMEditor
                 u8	maxLOD;
                 u8	padding;
 
-                void SwapBytes();
+                ImageHeader SwapBytes();
             };
 
             struct Image

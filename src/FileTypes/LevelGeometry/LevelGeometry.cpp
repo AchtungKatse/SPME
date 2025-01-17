@@ -2,6 +2,7 @@
 #include "FileTypes/LevelGeometry/InternalMapFile.h"
 #include "assimp/material.h"
 #include "assimp/quaternion.h"
+#include "assimp/types.h"
 #include "assimp/vector3.h"
 #include <numbers>
 #include <string>
@@ -157,7 +158,6 @@ namespace SPMEditor {
     {
         // Read the header
         int* headerPtr = (int*)(s_Data + offset);
-        LogTrace("Header ptr: {:X}", (long)headerPtr);
 
         // Doing it this way instead of just casting the pointer to an info header
         // because char* is 8 bytes long while the offsets in the header are only 4 bytes long
@@ -196,6 +196,7 @@ namespace SPMEditor {
 
         // Create new object
         aiNode* object = new aiNode();
+        object->mName = aiString((char*)s_Data + objectData.name);
 
         // Copy the name
         std::string name = (char*)(s_Data + objectData.name);
@@ -227,6 +228,7 @@ namespace SPMEditor {
             // Actually do the reading
             LogInfo("\tMesh: 0x{:x}", meshOffset);
             aiMesh* mesh = ReadMesh(meshOffset);
+            mesh->mName = object->mName;
             u32 materialIndex = (materialOffset - s_FirstMaterialAddress) / sizeof(Material);
 
             mesh->mMaterialIndex = materialIndex;

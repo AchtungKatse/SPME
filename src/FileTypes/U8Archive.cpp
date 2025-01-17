@@ -339,9 +339,9 @@ namespace SPMEditor {
             return;
         std::filesystem::create_directories(outputPath);
 
-        for (auto pair : files)
+        for (auto fileNameDataPair : files)
         {
-            const std::string path = pair.first;
+            const std::string path = fileNameDataPair.first;
             std::filesystem::path filePath(path);
 
             if (filePath.has_parent_path())
@@ -352,7 +352,7 @@ namespace SPMEditor {
                 std::filesystem::create_directories(outputPath + "/" + parentPath);
             }
 
-            FileWriter::WriteFile(outputPath + "/" + path, pair.second.data);
+            FileWriter::WriteFile(outputPath + "/" + path, fileNameDataPair.second.data);
         }
     }
 

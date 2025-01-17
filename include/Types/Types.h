@@ -5,6 +5,8 @@ typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 
+typedef unsigned int uint;
+
 struct Color 
 {
     Color() = default;
@@ -60,8 +62,9 @@ struct vec2
     operator aiVector3t<float>() {return aiVector3t<float>((float)x, (float)y, 0); }
 };
 
+typedef vec3<int> Vector3i;
+typedef vec2<int> Vector2i;
 typedef vec3<float> Vector3;
-
 typedef vec2<float> Vector2;
 
 inline short ByteSwap(short val)
