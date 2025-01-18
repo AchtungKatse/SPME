@@ -52,8 +52,8 @@ SPME tpl
 - Models in SPM are encoded as triangle strips instead of vertices and indices. This creates problems with exporting models since triangle strips are non-standard.
 
 # Known Issues
-- [ ] UV scaling is not consistent between maps
-- [ ] Some maps do not place objects in the correct spots (Seen Below).
+- ~~UV scaling is not consistent between maps~~
+- ~~Some maps do not place objects in the correct spots (Seen Below).~~
 	- ![he1_05 Bad Transforms](https://raw.githubusercontent.com/AchtungKatse/SPME/refs/heads/main/Images/he1_05%20Bad%20Transforms.png)
 - [ ] Some object positions are dependent on animations which causes extra objects to be visible or in the incorrect place. This is especially noticable on levels with into animations (Seen below)
   	- ![he1_01 Required Animations](https://raw.githubusercontent.com/AchtungKatse/SPME/refs/heads/main/Images/he1_01%20Required%20Animations.png)
