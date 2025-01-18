@@ -24,7 +24,7 @@ namespace SPMEditor {
             static void ReadSection(Section section, aiScene* scene);
             static void ReadMaterialNameTable(int tableOffset, aiScene* scene, int textureCount);
             static aiNode* ReadInfo(int offset, std::vector<aiMesh*>& meshes);
-            static aiNode* ReadObject(int objectOffset, int& nextSibling, std::vector<aiMesh*>& meshes);
+            static aiNode* ReadObject(int objectOffset, int& nextSibling, std::vector<aiMesh*>& meshes, std::string indent = "");
             static aiMesh* ReadMesh(int offset);
 
             static std::vector<std::string> ReadTextureNames(int offset);
@@ -35,5 +35,6 @@ namespace SPMEditor {
             static const u8* s_Data;
             static aiScene* s_CurrentScene;
             static int s_FirstMaterialAddress; // Required to calculate the material index for each mesh
+            static VCDTable s_VCDTable;
     };
 }

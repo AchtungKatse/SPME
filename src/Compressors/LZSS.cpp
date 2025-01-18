@@ -5,7 +5,7 @@ namespace SPMEditor {
     std::vector<u8> LZSS::DecompressBytes(const u8* data, int length) {
         //Decompress LZSS-compressed bytes. Returns a bytearray.//
         u8 type = *data;
-        u32 decompressedSize = (*(u32*)data) >> 8;
+        u32 decompressedSize = *(u32*)data >> 8;
         LogInfo("Decompressing lzss stream as type {:x}", type);
 
         if (type == 0x10)
@@ -34,7 +34,7 @@ namespace SPMEditor {
         u8 slidingWindow[WindowSize];
         int windowIndex = WindowSize - F;
 
-        int i, j, k, r, z;
+        int length, disp, k, r, z;
         u8 c;
         int flags;
 
@@ -65,14 +65,14 @@ namespace SPMEditor {
             }
             else
             {
-                i = input[inPos++];
-                j = input[inPos++];
+                length = input[inPos++];
+                disp = input[inPos++];
 
-                j = j | ((i << 8) & 0xf00);     // match offset
-                i = ((i >> 4) & 0x0f) + THRESHOLD;  // match length
-                for (k = 0; k <= i; k++)
+                disp = disp | ((length << 8) & 0xf00);     // match offset
+                length = ((length >> 4) & 0x0f) + THRESHOLD;  // match length
+                for (k = 0; k <= length; k++)
                 {
-                    c = slidingWindow[(r - j - 1) & (WindowSize - 1)];
+                    c = slidingWindow[(r - disp - 1) & (WindowSize - 1)];
                     output[outPos++] = c;
 
                     slidingWindow[r++] = (u8)c;
@@ -87,18 +87,14 @@ namespace SPMEditor {
     std::vector<u8> LZSS::DecompressLzss11(const u8* indata, int compressedSize, int decompressedSize) {
         // Decompress LZSS-compressed bytes. Returns a bytearray.
         std::vector<u8> output(decompressedSize);
-        for (int i = 0; i < decompressedSize; i++) {
-            output[i] = 255; 
-        }
         int outputPosition = 0;
         int inputPosition = 0;
-        for (int i = 0; i < decompressedSize; i++)
+        for (int i = 0; i < compressedSize; i++)
         {
-            int b = indata[inputPosition++];
-            //int[] flags = bits(b);
+            int flags = indata[inputPosition++];
             for (int j = 0; j < 8; j++)
             {
-                int flag = (b >> j) & 1;
+                int flag = (flags >> j) & 1;
 
                 if (flag == 0)
                 {
@@ -106,7 +102,7 @@ namespace SPMEditor {
                 }
                 else if (flag == 1)
                 {
-                    b = indata[inputPosition++];
+                    int b = indata[inputPosition++];
                     int indicator = b >> 4;
 
                     int count = 0;
@@ -153,8 +149,8 @@ namespace SPMEditor {
     }
 
     bool Search(const std::vector<u8>& data, int startIndex, int& offset, int& length) {
-        int longestLength = 0;
-        offset = -1;
+        length = 0;
+        offset = 0;
         // Check backwards for the entire sliding window size
         for (int i = 3; i < 256; i++) {
             // For each character in the sliding window
@@ -175,7 +171,7 @@ namespace SPMEditor {
                 }
             }
         }
-        length = longestLength;
+
         if (startIndex % 0x200 == 0)
             LogInfo("Searching 0x{:x} / 0x{:x} \tLongest Length: 0x{:x}", startIndex, data.size(), length);
 
@@ -183,23 +179,24 @@ namespace SPMEditor {
         return length > 2;
     }
 
-    std::vector<u8> LZSS::CompressLzss11(const std::vector<u8>& data) {
+    std::vector<u8> LZSS::CompressLzss10(const std::vector<u8>& data) {
         LogInfo("Compressing 0x{:x} bytes of lzss11 data", data.size());
         std::vector<u8> output;
-        output.push_back(0x11);
+        output.reserve(data.size() + 4);
 
+        output.push_back(0x10);
         output.push_back(0);
         output.push_back(0);
         output.push_back(0);
 
-        *((u32*)output.data()) |= ByteSwap((u32)data.size());
+        *((u32*)output.data()) |= ((u32)data.size() & 0xFFFFFF) << 8; // Writes length
 
-        output.reserve(data.size());
 
-        for (int i = 0; i < data.size(); i++)
+        int outputOffset = 4;
+        for (int i = 0; i < data.size();)
         {
             // Go in sets of 8
-            int flags = 0;
+            u8 flags = 0;
             long flagOffset = output.size();
             output.push_back(0);
 
@@ -207,13 +204,13 @@ namespace SPMEditor {
             {
                 int offset;
                 int length;
-                // if (Search(data, i, offset, length))
-                // {
-                //     flags |= 1 << j;
-                //     output.push_back(offset);
-                //     output.push_back(length);
-                // }
-                // else
+                /*if (Search(data, i, offset, length))*/
+                /*{*/
+                /*    flags |= 1 << j;*/
+                /*    output.push_back((u8)offset);*/
+                /*    output.push_back((u8)length);*/
+                /*}*/
+                /*else*/
                 {
                     output.push_back(data[i]);
                 }

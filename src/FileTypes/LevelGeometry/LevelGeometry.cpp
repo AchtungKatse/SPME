@@ -15,6 +15,8 @@ namespace SPMEditor {
     const u8* LevelGeometry::s_Data;
     aiScene* LevelGeometry::s_CurrentScene;
     int LevelGeometry::s_FirstMaterialAddress; // Required to calculate the material index for each mesh
+    VCDTable LevelGeometry::s_VCDTable; // Required to calculate the material index for each mesh
+    int objectCount = 0;
 
     aiScene* LevelGeometry::LoadFromBytes(const std::vector<u8>& fileData, TPL tpl)
     {
@@ -55,8 +57,12 @@ namespace SPMEditor {
         // Ok so some sections need to be read in a specific order because of assimp
         // Namely the material table because assimp references the material via an index
         // instead of a file pointer like the map data. who could have guessed that
+        Section vcdSection = FindSection("vcd_table", sectionTableOffset, header.sectionCount);
+        s_VCDTable = ReadVCDTable(vcdSection.fileOffset);
+
         Section materialSection = FindSection("material_name_table", sectionTableOffset, header.sectionCount);
         ReadMaterialNameTable(materialSection.fileOffset, s_CurrentScene, tpl.images.size());
+
         LogInfo("Scene has {} materials", s_CurrentScene->mNumMaterials);
 
         for (int i = 0; i < header.sectionCount; i++) {
@@ -109,13 +115,10 @@ namespace SPMEditor {
                 return;
             case str2int("information"):
                 {
-                    LogTrace("Creating meshes");
                     std::vector<aiMesh*> meshes;
-                    LogTrace("Creating root node");
                     scene->mRootNode = ReadInfo(section.fileOffset, meshes);
                     scene->mNumMeshes = meshes.size();
                     scene->mMeshes = new aiMesh*[meshes.size()];
-                    LogTrace("Setting meshes");
                     for (int i = 0; i < scene->mNumMeshes; i++) {
                         scene->mMeshes[i] = meshes[i];
                     }
@@ -141,8 +144,7 @@ namespace SPMEditor {
         }
     }
 
-    std::vector<std::string> LevelGeometry::ReadTextureNames(int offset)
-    {
+    std::vector<std::string> LevelGeometry::ReadTextureNames(int offset) {
         int* textureTable = (int*)(s_Data + offset);
         int imageCount = ByteSwap(textureTable[0]);
 
@@ -154,8 +156,7 @@ namespace SPMEditor {
         return names;
     }
 
-    aiNode* LevelGeometry::ReadInfo(int offset, std::vector<aiMesh*>& meshes)
-    {
+    aiNode* LevelGeometry::ReadInfo(int offset, std::vector<aiMesh*>& meshes) {
         // Read the header
         int* headerPtr = (int*)(s_Data + offset);
 
@@ -165,34 +166,36 @@ namespace SPMEditor {
         info.version = (char*)(long long)ByteSwap(headerPtr[0]);
         info.objHeirarchyOffset = ByteSwap(headerPtr[1]);
         info.rootObjName = (char*)(long long)ByteSwap(headerPtr[2]);
-        info.rootTriggerName = (char*)(long long)ByteSwap(headerPtr[3]);
+        info.rootColliderName = (char*)(long long)ByteSwap(headerPtr[3]);
         info.timestamp = (char*)(long long)ByteSwap(headerPtr[4]);
-        LogTrace("Read info header");
 
         // Add the data ptr to each pointer in the info header
         // because the offsets are relative to the start of the file (data)
         info.version += (long long)s_Data;
         info.timestamp += (long long)s_Data;
         info.rootObjName += (long long)s_Data;
-        info.rootTriggerName += (long long)s_Data;
-        LogTrace("Adding data ptr to info header string things");
+        info.rootColliderName += (long long)s_Data;
 
-        LogInfo("File version: {}", info.version);
-        LogInfo("Root Obj: {}", info.rootObjName);
-        LogInfo("Root Trigger: {}", info.rootTriggerName);
-        LogInfo("Timestamp: {}", info.timestamp);
+        LogInfo("----- Info Header -----");
+        LogInfo("File version:  {}", info.version);
+        LogInfo("Root Obj:      {}", info.rootObjName);
+        LogInfo("Root Trigger:  {}", info.rootColliderName);
+        LogInfo("Timestamp:     {}", info.timestamp);
 
+        LogInfo("----- Reading Objects -----");
         int siblingOffset;
         aiNode* rootObject = ReadObject(info.objHeirarchyOffset, siblingOffset, meshes);
 
+        LogInfo("----- Object Count {} -----", objectCount);
         return rootObject;
     }
 
-    aiNode* LevelGeometry::ReadObject(int objectOffset, int& nextSibling, std::vector<aiMesh*>& meshes) 
-    {
+    aiNode* LevelGeometry::ReadObject(int objectOffset, int& nextSibling, std::vector<aiMesh*>& meshes, std::string indent) {
+        objectCount++;
         // Read raw object data
         RawObject objectData = *(RawObject*)(s_Data + objectOffset);
         ByteSwap((int*)&objectData, sizeof(RawObject) / sizeof(int));
+        Assert(objectData.padding == 0, "Object data is not padding. Expected 0, got 0x{:x}", objectData.padding);
 
         // Create new object
         aiNode* object = new aiNode();
@@ -215,7 +218,13 @@ namespace SPMEditor {
         object->mMeshes = new u32[objectData.meshCount];
         object->mNumMeshes = objectData.meshCount;
 
-        LogInfo("Object: {} found at 0x{:x} with {} meshes", name, objectData.meshCount, objectOffset);
+        LogInfo("{}Object '{}'", indent, name);
+        LogInfo("\t{}Type: {:5}, Offset: {:5x}, Mesh Count: {:3}", indent, type, objectOffset, objectData.meshCount);
+        LogInfo("\t{}Position   ({:5}, {:5}; {:5})", indent, objectData.position.x, objectData.position.y, objectData.position.z);
+        LogInfo("\t{}Rotation   ({:5}, {:5}; {:5})", indent, objectData.rotation.x, objectData.rotation.y, objectData.rotation.z);
+        LogInfo("\t{}Scale      ({:5}, {:5}; {:5})", indent, objectData.scale.x, objectData.scale.y, objectData.scale.z);
+        LogInfo("\t{}Bounds Min ({:5}, {:5}; {:5})", indent, objectData.boundsMin.x, objectData.boundsMin.y, objectData.boundsMin.z);
+        LogInfo("\t{}Bounds Max ({:5}, {:5}; {:5})", indent, objectData.boundsMax.x, objectData.boundsMax.y, objectData.boundsMax.z);
         for (int i = 0; i < objectData.meshCount; i++) {
             // Read the material offset
             // Fun story, these two lines killed a days worth of bug fixing (~10 hours)
@@ -226,7 +235,6 @@ namespace SPMEditor {
 
 
             // Actually do the reading
-            LogInfo("\tMesh: 0x{:x}", meshOffset);
             aiMesh* mesh = ReadMesh(meshOffset);
             mesh->mName = object->mName;
             u32 materialIndex = (materialOffset - s_FirstMaterialAddress) / sizeof(Material);
@@ -249,7 +257,7 @@ namespace SPMEditor {
         std::vector<aiNode*> children;
         while (nextChild)
         {
-            aiNode* childObject = ReadObject(nextChild, nextChild, meshes);
+            aiNode* childObject = ReadObject(nextChild, nextChild, meshes, indent + '\t');
             children.push_back(childObject);
         }
 
@@ -266,12 +274,12 @@ namespace SPMEditor {
 
     aiMesh* LevelGeometry::ReadMesh(int offset)
     {
-        // cout << "\tHeader at 0x: " << offset << endl;
         MeshHeader header = *(MeshHeader*)(s_Data + offset);
         ByteSwap4(&header, 4);
 
+        Assert(header.constant == 0x1000001, "Mesh header constant is not constant. Expected 0x1000001, got 0x{:x}", header.constant);
+
         aiMesh* mesh = new aiMesh();
-        VCDTable vcd = ReadVCDTable(header.VCDOffset);
 
         // Read each triangle entry
         VertexStrip::Header * stripHeaders = (VertexStrip::Header*)(s_Data + offset + sizeof(MeshHeader));
@@ -281,7 +289,7 @@ namespace SPMEditor {
         for (int i = 0; i < header.entryCount; i++) {
             VertexStrip::Header vertexStrip = stripHeaders[i];
             ByteSwap((int*)&vertexStrip, 2);
-            ReadVertices(vcd, vertexStrip.entryOffset, header.vertexAttributes, vertices);
+            ReadVertices(s_VCDTable, vertexStrip.entryOffset, header.vertexAttributes, vertices);
 
             for (int v = indexOffset; v < vertices.size(); v++)
             {
@@ -339,6 +347,8 @@ namespace SPMEditor {
 
     void LevelGeometry::ReadVertices(VCDTable vcd, int offset, VertexAttributes attributes, std::vector<Vertex>& vertices)
     {
+        // Vertex UV and position scale factor has to do with float dequantization (pqx_lx instruction)
+        // This happens at 0x8006d74c in the binary
         VertexStrip header = *(VertexStrip*)(s_Data + offset);
         header.vertexCount = ByteSwap(header.vertexCount);
 
@@ -350,7 +360,7 @@ namespace SPMEditor {
                 vec3<short> rawVertex = vcd.vertices[ByteSwap(*vertexData++)];
                 ByteSwap2(&rawVertex, 3);
 
-                int scaleFactor = 64;
+                int scaleFactor = vcd.vertexScale;
                 vertex.position = Vector3((float)rawVertex.x / scaleFactor, (float)rawVertex.y / scaleFactor, (float)rawVertex.z / scaleFactor);
             }
             if (((u32)attributes & (u32)VertexAttributes::Unk_1) != 0)
@@ -381,7 +391,7 @@ namespace SPMEditor {
                 vec2<u16> rawUv = vcd.uvs[uvIndex];
                 ByteSwap2(&rawUv, 2);
 
-                int uvScale = 0x100;
+                int uvScale = vcd.uvScale;
                 Vector2 uv = Vector2((float)(short)rawUv.x / uvScale, 1.0f - (float)(short)rawUv.y / uvScale);
                 vertex.uv = uv;
             }
@@ -393,6 +403,7 @@ namespace SPMEditor {
     VCDTable LevelGeometry::ReadVCDTable(int offset)
     {
         VCDTable table;
+        LogInfo("----- Reading VCD Table -----");
 
         // This function is funky
         // I doubt it is 100% accurate
@@ -404,17 +415,30 @@ namespace SPMEditor {
         int colorsOffset = ByteSwap(offsetPtrs[3]);
         int uvOffset = ByteSwap(offsetPtrs[6]);
 
-        // cout << "VCD Table Offset: 0x " << offset << endl;
-        // cout << "UV Table: 0x " << uvOffset << endl;
         table.vertexCount = ByteSwap(*(int*)(s_Data + vertexOffset));
         table.lightColorCount = ByteSwap(*(int*)(s_Data + lightsOffset));
         table.colorCount = ByteSwap(*(int*)(s_Data + colorsOffset));
         table.uvCount = ByteSwap(*(int*)(s_Data + uvOffset));
 
+        table.vertexScale = 1 << ByteSwap(offsetPtrs[17]);
+        table.uvScale = 1 << ByteSwap(offsetPtrs[18]);
+
         table.vertices = (vec3<short>*)(s_Data + vertexOffset + 4);
         table.lightColors = (Color*)(s_Data + lightsOffset + 4);
         table.colors = (Color*)(s_Data + colorsOffset + 4);
         table.uvs = (vec2<u16>*)(s_Data + uvOffset + 4);
+
+        LogInfo("Vertex Count:      0x{:x}", table.vertexCount);
+        LogInfo("Light Color Count: 0x{:x}", table.lightColorCount);
+        LogInfo("Color Count:       0x{:x}", table.colorCount);
+        LogInfo("UV Count:          0x{:x}", table.uvCount);
+        LogInfo("Vertex Scale:      0x{:x}", table.vertexScale);
+        LogInfo("UV Scale:          0x{:x}", table.uvScale);
+
+        LogInfo("Vertex PTR:        0x{:x}", vertexOffset);
+        LogInfo("Light Color PTR:   0x{:x}", lightsOffset); 
+        LogInfo("Color PTR:         0x{:x}", colorsOffset);
+        LogInfo("UV PTR:            0x{:x}", uvOffset);
 
         return table;
     }
@@ -422,7 +446,8 @@ namespace SPMEditor {
     void LevelGeometry::ReadMaterialNameTable(int tableOffset, aiScene* scene, int textureCount)
     {
         u32 materialCount = ByteSwap(*(u32*)(s_Data + tableOffset));
-        LogInfo("Found {} materials", materialCount);
+        LogInfo("----- Reading Material Name Table -----");
+        LogInfo("Material Count: 0x{:x}", materialCount);
         MaterialNameEntry* entries = (MaterialNameEntry*)(s_Data + tableOffset + 4);
 
         if (materialCount > 0)
@@ -440,16 +465,18 @@ namespace SPMEditor {
 
             // get the name
             aiString* name = new aiString((char*)(s_Data + entries[i].nameOffset));
-
             aiMaterial* mat = new aiMaterial();
             mat->AddProperty(name, AI_MATKEY_NAME);
+
+            LogInfo("Material: '{}'", name->C_Str());
+            LogInfo("\tUse Color: ({:3}, {:3}, {:3}, {:3}), Use Vertex Color: {:5}, Unk 1: {:5}, Unk 2: {:5}, Use Texture: {:5}, Texture Info Ptr: 0x{:x}",
+                    material.color.r, material.color.g, material.color.b, material.color.a, material.useVertexColor, material.unk_1, material.unk_2, material.useTexture, material.textureInfoPtr);
 
             // So the texture index is calculated by the offset of the data pointer
             // The first thing in the map.dat file is the texture table which make calculating the texture index easy
             // 0x14 is the map.dat header
             // then textureCount * 0x10 is the each texture info header (name ptr, params, and size)
             // then the pointer that the material rerences
-            LogInfo("Material {} (0x{:x})", name->C_Str(), entries[i].materialOffset);
             if (material.textureInfoPtr != 0)
             {
                 MapTexture::Info textureInfo = *(MapTexture::Info*)(s_Data + material.textureInfoPtr);
@@ -462,11 +489,9 @@ namespace SPMEditor {
                 aiString* textureName = new aiString((char*)(s_Data + mapTexture.nameOffset));
 
                 mat->AddProperty(textureName, AI_MATKEY_TEXTURE_DIFFUSE(0));
-
                 LogInfo("\tReferences texture '{}'", textureName->C_Str());
             }
 
-            LogInfo("\tColor: {:x}", *(int*)&material.color);
             aiColor4D color = aiColor4D((float)material.color.r / 255, (float)material.color.g / 255, (float)material.color.b / 255, (float)material.color.a / 255);
             mat->AddProperty(&color, 4, AI_MATKEY_BASE_COLOR);
             mat->AddProperty(&color, 4, AI_MATKEY_COLOR_DIFFUSE);

@@ -1,4 +1,5 @@
 #pragma once
+#include "FileTypes/U8File.h"
 #include <unordered_map>
 
 namespace SPMEditor
@@ -7,11 +8,6 @@ namespace SPMEditor
     struct U8Archive
     {
         public:
-            struct File
-            {
-                std::string name;
-                std::vector<u8> data;
-            };
 
             struct Header 
             {
@@ -35,20 +31,20 @@ namespace SPMEditor
         public:
 
             bool Exists(const std::string& path);
-            File& operator[](const std::string& path);
+            U8File& operator[](const std::string& path);
 
             void Dump(const std::string& path);
             std::vector<u8> CompileU8();
 
-            std::unordered_map<std::string, File> files;
+            Directory rootDirectory;
 
             static U8Archive ReadFromFile(const std::string& path, bool compressed);
             static U8Archive ReadFromBytes(const std::vector<u8>& data, bool compressed);
             static bool TryCreateFromDirectory(const std::string& path, U8Archive& output);
 
         private:
-            static void ReadVirtualDirectory(std::unordered_map<std::string, File>& files, const u8* data, Node* nodes, int numNodes, int& index, const std::string& path = "");
-            static File CreateNodeFromFile(const std::string& path);
+            static Directory ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, int& index, const std::string& path = "");
+            static U8File CreateNodeFromFile(const std::string& path);
             static void CreateNodeFromDirectory(const std::string& path);
     };
 }

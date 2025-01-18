@@ -61,7 +61,7 @@ namespace SPMEditor::LevelInternal
         char* version;
         int objHeirarchyOffset;
         char* rootObjName;
-        char* rootTriggerName;
+        char* rootColliderName;
         char* timestamp;
     };
 
@@ -82,7 +82,7 @@ namespace SPMEditor::LevelInternal
         Vector3 boundsMax;
 
         int padding;
-        int subdataPtr;
+        int subdataPtr; // Guesstimating this datastructure 0x14 bytes long or a multiple of 0x14, Seems to somehow affect rendering / transparency mode
         int meshCount;
 
         // then for each mesh in mesh count (with a minimum of 1)
@@ -97,6 +97,9 @@ namespace SPMEditor::LevelInternal
         int lightColorCount;
         int colorCount;
         int uvCount;
+        int unknown[13];
+        int vertexScale;
+        int uvScale;
 
         vec3<short>* vertices;
         Color* lightColors;

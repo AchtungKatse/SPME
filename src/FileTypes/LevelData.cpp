@@ -45,18 +45,13 @@ namespace SPMEditor {
 
         // Load level geometry
         // Grab texturesE
-        U8Archive::File& textureFile = level.u8Files["./dvd/map/" + name + "/texture.tpl"];
+        U8File& textureFile = level.u8Files["./dvd/map/" + name + "/texture.tpl"];
         TPL tpl = TPL::LoadFromBytes(textureFile.data);
 
         // Load main map data
         const std::string& mapPath = fmt::format("./dvd/map/{}/map.dat", name);
         if (!level.u8Files.Exists(mapPath))
         {
-            for (auto pair : level.u8Files.files)
-            {
-                LogError("\t{}", pair.first);
-            }
-
             LogError("Level does not contain path '{}'", mapPath);
             return level;
         }
