@@ -1,7 +1,7 @@
 # About
 This application can be used to decompress LZSS files, extract U8 Archives, and convert level files from Super Paper Mario into .fbx files.
 
-![[Images/he1_01.png]]
+![he1_01.bin](https://raw.githubusercontent.com/AchtungKatse/SPME/refs/heads/main/Images/he1_01.png)
 
 # Building
 ```
@@ -54,7 +54,7 @@ SPME tpl
 # Known Issues
 - [ ] UV scaling is not consistent between maps
 - [ ] Some maps do not place objects in the correct spots (Seen Below).
-	- ![[Images/he1_05 Bad Transforms.png]]
+	- ![he1_05 Bad Transforms](https://raw.githubusercontent.com/AchtungKatse/SPME/refs/heads/main/Images/he1_05%20Bad%20Transforms.png)
 - [ ] Some object positions are dependent on animations which causes extra objects to be visible or in the incorrect place. This is especially noticable on levels with into animations (Seen below)
-	- ![[Images/he1_01 Required Animations.png]]
+  	- ![he1_01 Required Animations](https://raw.githubusercontent.com/AchtungKatse/SPME/refs/heads/main/Images/he1_01%20Required%20Animations.png)
 - Windows builds may have less compatibility than the linux builds since SPME is developed on linux, although they should both be tested before release
