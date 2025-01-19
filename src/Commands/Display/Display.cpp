@@ -29,9 +29,11 @@ namespace SPMEditor {
             InitOpenGL();
 
         // Load scene
+        LogTrace("Reading root object");
         PreviewObject rootObject = PreviewObject(level.geometry, level.geometry->mRootNode);
 
         // Setup shader
+        LogTrace("Creating Shaders");
         ShaderProgram defaultShader("Default shader", {
                 Shader::CreateFromSource("Vertex", s_VertexSource, ShaderType::Vertex),
                 Shader::CreateFromSource("Fragment", s_FragmentSource, ShaderType::Fragment)});
@@ -41,6 +43,7 @@ namespace SPMEditor {
         defaultShader.SetUniformVector3("LightDir", *(Vector3*)&lightDir);
 
         // Load textures
+        LogTrace("Loading Textures");
         PreviewTexture* textures = new PreviewTexture[level.geometry->mNumTextures];
         stbi_set_flip_vertically_on_load(true);  
 
@@ -62,6 +65,7 @@ namespace SPMEditor {
         }
 
         // Final gl init
+        LogTrace("Starting Render Loop");
         double lastTime = 0;
         int frame = 0;
         while (!glfwWindowShouldClose(s_Window))
@@ -137,6 +141,7 @@ namespace SPMEditor {
         glfwSwapInterval(1);
 
         // Setup input
+        LogTrace("Creating GLFW Callbacks");
         glfwSetInputMode(s_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         InitializeCallbacks(s_Window);
     }

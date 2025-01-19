@@ -56,7 +56,8 @@ namespace SPMEditor
         m_Width = width;
         m_Height = height;
 
-        glCreateTextures(GL_TEXTURE_2D, 1, &m_TextureID);
+        m_TextureID = 0;
+        glGenTextures(1, &m_TextureID);
         glBindTexture(GL_TEXTURE_2D, m_TextureID);
         Assert(m_TextureID != 0, "Failed to generate texture: {}", m_TextureID);
 
@@ -68,7 +69,6 @@ namespace SPMEditor
         //
         // Create the texture
         glTexImage2D(GL_TEXTURE_2D, 0, (GLenum)format, width, height, 0, (GLenum)format, GL_UNSIGNED_BYTE, data);
-        glGenerateTextureMipmap(m_TextureID);
     }
 
     void PreviewTexture::Bind(GLuint binding)

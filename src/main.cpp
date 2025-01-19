@@ -38,10 +38,12 @@ int main(int argc, char** argv) {
                 i++;
                 ConvertCommand(i, argc, argv);
                 break;
+#ifndef NO_BUILD_DISPLAY
             case str2int("display"):
                 LevelData level = LevelData::LoadLevelFromFile(argv[i + 1], true);
                 Display::DisplayLevel(level);
                 break;
+#endif
         }
     }
 

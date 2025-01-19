@@ -43,6 +43,9 @@ SPME tpl
 ```
 
 # TO DO
+- [ ] Read curve_table section
+- [ ] Read animation_table section
+- [ ] Read fog_table section
 - [ ] Reverse engineer vertex attributes UNK_1 / UNK_2
 - [ ] Create a blender script to automatically setup meshes (Vertex colors are not mixed with the textures)
 - [ ] Map exporting

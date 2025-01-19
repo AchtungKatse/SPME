@@ -105,13 +105,14 @@ namespace SPMEditor {
         switch (str2int(section.name.c_str()))
         {
             case str2int("material_name_table"): return;
+            case str2int("vcd_table"): return;
         }
 
         LogInfo("Trying to read section {} at offset 0x{:x}", section.name, section.fileOffset);
         switch (str2int(section.name.c_str()))
         {
             default:
-                LogInfo("Section {} at offset 0x{:x} not implemented", section.name, section.fileOffset);
+                LogWarn("----------- Section {} at offset 0x{:x} not implemented -----------", section.name, section.fileOffset);
                 return;
             case str2int("information"):
                 {
