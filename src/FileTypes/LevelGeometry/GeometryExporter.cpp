@@ -241,7 +241,7 @@ namespace SPMEditor {
             const auto uv = pair.first;
             int index = pair.second;
             *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x24) = ByteSwap((u16)(uv.x * _uvScale));
-            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x26) = ByteSwap((u16)(uv.y * _uvScale));
+            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x26) = ByteSwap((u16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
         }
 
         AddPadding(0x20);
@@ -279,7 +279,9 @@ namespace SPMEditor {
 
                 if (mesh->HasTextureCoords(0)) {
                     if (!mUvTable.contains(mesh->mTextureCoords[0][v])) {
-                        mUvTable.emplace(mesh->mTextureCoords[0][v], mUvTable.size());
+
+                        aiVector3D uv = mesh->mTextureCoords[0][v];
+                        mUvTable.emplace(uv, mUvTable.size());
                     }
                 }
             }
