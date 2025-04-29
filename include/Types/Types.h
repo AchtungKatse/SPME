@@ -1,9 +1,17 @@
 #pragma once
 #include "assimp/color4.h"
 #include "assimp/vector3.h"
+#include <stdint.h>
+
 typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef char s8;
+typedef short s16;
+typedef int s32;
+typedef int16_t s64;
 
 typedef unsigned int uint;
 
@@ -76,7 +84,7 @@ inline short ByteSwap(short val)
     newData[1] = bytes[0];
     return *(short*)newData;
 }
-inline int ByteSwap(int val)
+inline float ByteSwap(float val)
 {
     char* bytes = (char*)&val;
     char newData[4];
@@ -85,16 +93,22 @@ inline int ByteSwap(int val)
     newData[2] = bytes[1];
     newData[1] = bytes[2];
     newData[0] = bytes[3];
+    return *(float*)newData;
+}
+inline int ByteSwap(int val) {
+    char* bytes = (char*)&val;
+    char newData[4];
+
+    newData[0] = bytes[3];
+    newData[1] = bytes[2];
+    newData[2] = bytes[1];
+    newData[3] = bytes[0];
     return *(int*)newData;
 }
-inline u16 ByteSwap(u16 val)
-{
-    return ByteSwap((short)val);
-}
-inline u32 ByteSwap(u32 val)
-{
-    return ByteSwap((int)val);
-}
+inline u8 ByteSwap(u8 val) { return val; }
+inline s8 ByteSwap(s8 val) { return val; }
+inline u16 ByteSwap(u16 val) { return ByteSwap((short)val); }
+inline u32 ByteSwap(u32 val) { return ByteSwap((int)val); }
 
 inline void ByteSwap4(void* data, int elementCount)
 {

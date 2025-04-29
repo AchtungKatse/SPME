@@ -1,7 +1,8 @@
 #include "IO/FileReader.h"
+#include <fstream>
 
 namespace SPMEditor {
-    std::vector<u8> FileReader::ReadFileBytes(const std::string& path)
+    FileHandle FileReader::ReadFileBytes(const std::string& path)
     {
         Assert(std::filesystem::exists(path), "Failed to find file '{}'", path);
 
@@ -9,10 +10,15 @@ namespace SPMEditor {
         int size = file.tellg();
         file.seekg(0, std::ios::beg);
 
-        std::vector<u8> data(size);
-        file.read((char*)data.data(), size);
+        u8* data = new u8[size];
+        file.read((char*)data, size);
+
+        FileHandle handle = {
+            .data = data,
+            .size = size,
+        };
 
         Assert(size > 0, "Error reading file '{}', invalid size '{}'", path, size);
-        return data;
+        return handle;
     }
 }

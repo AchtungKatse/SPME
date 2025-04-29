@@ -1,5 +1,5 @@
 #pragma once
 
-namespace SPME {
-    #define Assert(condition, ...) if (!(condition)) { ::spdlog::error(__VA_ARGS__); abort(); } 
+namespace SPMEditor {
+    #define Assert(condition, ...) if (!(condition)) { ::spdlog::error("{}:{}", __FILE__, __LINE__); ::spdlog::error(__VA_ARGS__); abort(); } 
 }

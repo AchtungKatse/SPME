@@ -1,4 +1,5 @@
 #pragma once
+#include "glad/glad.h"
 
 namespace SPMEditor
 {
@@ -27,17 +28,5 @@ namespace SPMEditor
 
             unsigned int m_ShaderIndex;
     };
-    /**/
-    /*class FragmentShader : public Shader*/
-    /*{*/
-    /*    public:*/
-    /*        FragmentShader(const char* shaderName, const char* filePath = nullptr);*/
-    /*};*/
-    /**/
-    /*class VertexShader : public Shader*/
-    /*{*/
-    /*    public:*/
-    /*        VertexShader(const char* shaderName, const char* filePath = nullptr);*/
-    /*};*/
 }
 

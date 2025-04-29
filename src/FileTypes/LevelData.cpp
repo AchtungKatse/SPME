@@ -5,25 +5,23 @@
 #include "assimp/material.h"
 
 namespace SPMEditor {
-    LevelData LevelData::LoadLevelFromFile(const std::string& path, bool compressed)
-    {
+    LevelData LevelData::LoadLevelFromFile(const std::string& path, bool compressed, const std::string& mapNameOverride) {
         Assert(std::filesystem::exists(path), "Failed to find file {}", path);
         std::filesystem::path filePath(path);
-        const std::vector<u8>& data = FileReader::ReadFileBytes(path);
+        FileHandle handle = FileReader::ReadFileBytes(path);
         
         const std::string& fileName = filePath.filename().string();
         const std::string& name = fileName.substr(0, fileName.size() - 4);
 
         LogInfo("Loaded file '{}'", fileName);
 
-        return LoadLevelFromBytes(name, data, compressed);
+        return LoadLevelFromBytes(name, handle.data, handle.size, compressed, mapNameOverride);
     }
 
-    void ReadMat(aiMaterial* mat)
-    {
+    void ReadMat(aiMaterial* mat) {
         LogInfo("Reading material: {}", mat->GetName().C_Str());
-        for (int i = 0; i < mat->mNumProperties; i++) {
-            auto prop = mat->mProperties[i];
+        for (size_t i = 0; i < mat->mNumProperties; i++) {
+            aiMaterialProperty* prop = mat->mProperties[i];
             LogInfo("\tProperty Key: ", prop->mKey.C_Str());
 
             if (prop->mType == aiPropertyTypeInfo::aiPTI_String)
@@ -35,28 +33,40 @@ namespace SPMEditor {
         }
     }
 
-    LevelData LevelData::LoadLevelFromBytes(const std::string& name, const std::vector<u8>& data, bool compressed)
-    {
-        const auto baseArchive = U8Archive::ReadFromBytes(data, compressed);
+    LevelData LevelData::LoadLevelFromBytes(const std::string& name, const std::vector<u8>& data, bool compressed, const std::string& mapNameOverride) {
+        return LoadLevelFromBytes(name, data.data(), data.size(), compressed, mapNameOverride);
+    }
+
+    LevelData LevelData::LoadLevelFromBytes(const std::string& name, const u8* data, u64 size, bool compressed, const std::string& mapNameOverride) {
+        const auto baseArchive = U8Archive::ReadFromBytes(data, size, compressed);
+
+        std::string mapName;
+        if (mapNameOverride != "") {
+            mapName = mapNameOverride;
+        } else {
+            mapName = name; 
+        }
 
         LevelData level;
         level.u8Files = baseArchive;
-        level.name = name;
+        level.name = mapName;
 
         // Load level geometry
         // Grab texturesE
-        U8File& textureFile = level.u8Files["./dvd/map/" + name + "/texture.tpl"];
-        TPL tpl = TPL::LoadFromBytes(textureFile.data);
+        std::string texturePath = "./dvd/map/" + mapName + "/texture.tpl";
+        Assert(level.u8Files.Exists(texturePath), "Level does not have file at path '{}'", texturePath);
+        U8File& textureFile = level.u8Files[texturePath];
+        TPL tpl = TPL::LoadFromBytes(textureFile.data, textureFile.size);
 
         // Load main map data
-        const std::string& mapPath = fmt::format("./dvd/map/{}/map.dat", name);
+        const std::string& mapPath = fmt::format("./dvd/map/{}/map.dat", mapName);
         if (!level.u8Files.Exists(mapPath))
         {
             LogError("Level does not contain path '{}'", mapPath);
             return level;
         }
-        auto map = level.u8Files[mapPath];
-        level.geometry = LevelGeometry::LoadFromBytes(map.data, tpl);
+        const U8File& map = level.u8Files[mapPath];
+        level.geometry = LevelGeometry::LoadFromBytes(map.data, map.size, tpl, &level);
 
         return level;
     }

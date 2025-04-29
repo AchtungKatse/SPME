@@ -96,7 +96,7 @@ namespace SPMEditor {
 
         for (const U8File& file : files) {
             LogInfo("\tDumping '{}' in '{}'", file.name, path);
-            FileWriter::WriteFile(fmt::format("{}/{}", path, file.name), file.data);
+            FileWriter::WriteFile(fmt::format("{}/{}", path, file.name), file.data, file.size);
         }
 
         for (const Directory& subdir : subdirs) {
@@ -138,7 +138,7 @@ namespace SPMEditor {
         int fileSize = 0;
 
         for (int i = 0; i < files.size(); i++) {
-            fileSize += files[i].data.size();
+            fileSize += files[i].size;
             fileSize += 0x40 - (fileSize - 0x20) % 0x40;
         }
 

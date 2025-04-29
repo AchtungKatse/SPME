@@ -1,8 +1,70 @@
 #pragma once
+#include "assimp/texture.h"
 namespace SPMEditor
 {
+    enum class TPLImageFormat: u32 {
+        I4 = 0,
+        I8 = 1,
+        IA4 = 2,
+        IA8 = 3,
+        RGB565 = 4,
+        RGB5A3 = 5,
+        RGBA32 = 6,
+        C4 = 8,
+        C8 = 9,
+        C14X2 = 0xA,
+        CMPR = 0xE,
+    };
+
+    struct TPLImageCreateInfo {
+        aiTexture* mTexture;
+        TPLImageFormat mFormat;
+    };
+
+    class TPLCreateInfo {
+        public:
+            TPLImageCreateInfo* mImageCreateInfos;
+            uint mImageCreateInfoCount;
+    };
+
     class TPL
     {
+        public:
+            struct ImageHeader
+            {
+                u16	height;
+                u16	width;
+                TPLImageFormat format;
+                u32	imageDataAddress;
+                u32	wrapS;
+                u32	wrapT;
+                u32	minFilter;
+                u32	magFilter;
+                float LODBias;
+                u8	edgeLODEnable;
+                u8	minLOD;
+                u8	maxLOD;
+                u8	padding;
+
+                ImageHeader SwapBytes();
+            };
+
+            struct Image
+            {
+                ImageHeader header;
+                std::string name;
+                std::vector<Color> pixels;
+            };
+
+            std::vector<Image> images;
+
+            static TPL LoadFromFile(const std::string& path);
+            static TPL LoadFromBytes(const std::vector<u8>& data);
+            static TPL LoadFromBytes(const u8* data, u64 size);
+            static TPL CreateTPL(const TPLCreateInfo& info);
+
+            void Write(const std::string& path);
+
         private:
             struct Header {
                 int magic;
@@ -30,54 +92,8 @@ namespace SPMEditor
                 PaletteHeader SwapBytes();
             };
 
-        public:
-            struct ImageHeader
-            {
-                enum struct Format: u32 {
-                    I4 = 0,
-                    I8 = 1,
-                    IA4 = 2,
-                    IA8 = 3,
-                    RGB565 = 4,
-                    RGB5A3 = 5,
-                    RGBA32 = 6,
-                    C4 = 8,
-                    C8 = 9,
-                    C14X2 = 0xA,
-                    CMPR = 0xE,
-                };
-
-                u16	height;
-                u16	width;
-                Format format;
-                u32	imageDataAddress;
-                u32	wrapS;
-                u32	wrapT;
-                u32	minFilter;
-                u32	magFilter;
-                float LODBias;
-                u8	edgeLODEnable;
-                u8	minLOD;
-                u8	maxLOD;
-                u8	padding;
-
-                ImageHeader SwapBytes();
-            };
-
-            struct Image
-            {
-                ImageHeader header;
-                std::string name;
-                std::vector<Color> pixels;
-            };
-
-            std::vector<Image> images;
-
-            static TPL LoadFromFile(const std::string& path);
-            static TPL LoadFromBytes(const std::vector<u8>& data);
-
         private:
-            static void GetBlockSize(ImageHeader::Format format, int& width, int& height);
+            static void GetBlockSize(TPLImageFormat format, int& width, int& height);
             static std::vector<Color> ReadBlock(const u8* data, ImageHeader header, int xPos, int yPos);
             static std::vector<Color> ReadImage(const u8* data, ImageHeader imageHeader);
             static std::vector<Color> ReadCMPRBlock(const u8* data);

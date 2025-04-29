@@ -1,5 +1,6 @@
 #pragma once
+#include "IO/FileHandle.h"
 
 namespace SPMEditor::FileReader {
-    std::vector<u8> ReadFileBytes(const std::string& path);
+    FileHandle ReadFileBytes(const std::string& path);
 }

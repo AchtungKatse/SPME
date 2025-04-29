@@ -1,4 +1,5 @@
 #include "IO/FileWriter.h"
+#include <fstream>
 
 namespace SPMEditor
 {

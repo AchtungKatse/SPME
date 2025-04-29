@@ -1,4 +1,6 @@
 #pragma once
+#include "Types/Types.h"
+#include "assimp/vector3.h"
 #ifdef __GNUC__
 #define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
 #endif
@@ -9,13 +11,14 @@
 
 namespace SPMEditor::LevelInternal
 {
-    enum struct VertexAttributes : u32
+    enum class VertexAttributes : u32
     {
         Position = 1,
-        Unk_1 = 2,
+        Normal = 2,
         Color = 4,
         Unk_2 = 8,
-        UV = 0x10
+        UV = 0x10,
+        Unk_3 = 0x20,
     };
 
     PACK(struct VertexStrip
@@ -30,7 +33,6 @@ namespace SPMEditor::LevelInternal
         u16 vertexCount;
     });
 
-    constexpr int vsSize = sizeof(VertexStrip);
     struct MeshHeader
     {
         int constant;
@@ -42,8 +44,8 @@ namespace SPMEditor::LevelInternal
     struct FileHeader
     {
         int fileLength;
-        int fatPointer;
-        int fatEntryCount;
+        int pointerListStart;
+        int pointerEntryCount;
         int sectionCount;
         u8 padding[0x10];
 
@@ -56,7 +58,7 @@ namespace SPMEditor::LevelInternal
         std::string name;
     };
 
-    struct InfoHeader
+    struct InfoSection
     {
         char* version;
         int objHeirarchyOffset;
@@ -65,14 +67,27 @@ namespace SPMEditor::LevelInternal
         char* timestamp;
     };
 
+    struct RawInfoSection
+    {
+        int version;
+        int objHeirarchyOffset;
+        int rootObjName;
+        int rootColliderName;
+        int timestamp;
+    };
+
     struct RawObject
     {
-        int name;
-        int type;
-        int parent;
-        int child;
-        int nextSibling;
-        int previousSibling;
+        struct SubData {
+            u8 data[0x14];
+        };
+
+        int name; // char*
+        int type; // char*
+        int parent; // RawObject*
+        int child; // RawObject*
+        int nextSibling; // RawObject*
+        int previousSibling; // RawObject*
 
         Vector3 scale;
         Vector3 rotation; 
@@ -82,7 +97,7 @@ namespace SPMEditor::LevelInternal
         Vector3 boundsMax;
 
         int padding;
-        int subdataPtr; // Guesstimating this datastructure 0x14 bytes long or a multiple of 0x14, Seems to somehow affect rendering / transparency mode
+        int subdataPtr; // Guesstimating this datastructure 0x14 bytes long or a multiple of 0x14, Seems to somehow affect rendering / transparency mode. On everything but root object
         int meshCount;
 
         // then for each mesh in mesh count (with a minimum of 1)
@@ -91,10 +106,24 @@ namespace SPMEditor::LevelInternal
         // If meshCount == 0 then the first material* and mesh* are 0
     };
 
+    struct RawVCDTable {
+        int vertexOffset;
+        int normalOffset;
+        int unknown_1;
+        int colorOffset;
+        int unknown_2;
+        int unknown_3;
+        int uvOffset;
+        int unknown_4[10];
+        int vertexScale;
+        int uvScale;
+
+    };
+
     struct VCDTable
     {
         int vertexCount;
-        int lightColorCount;
+        int normalCount;
         int colorCount;
         int uvCount;
         int unknown[13];
@@ -102,7 +131,7 @@ namespace SPMEditor::LevelInternal
         int uvScale;
 
         vec3<short>* vertices;
-        Color* lightColors;
+        Color* normals;
         Color* colors;
         vec2<u16>* uvs;
     };
@@ -115,6 +144,17 @@ namespace SPMEditor::LevelInternal
 
     struct Material
     {
+        struct Parameter {
+            Vector2 unk_1;
+            Vector2 value;
+            Vector2 unk_2;
+            float unk_3;
+        };
+
+        struct SubData {
+            u8 unkown[0xc];
+        };
+
         int nameOffset; // Really a char* but its similar enough
         Color color;
         bool useVertexColor;
@@ -123,7 +163,17 @@ namespace SPMEditor::LevelInternal
         bool useTexture;
         int textureInfoPtr; // From my old notes. Idfk what this is
         // The structure is 0x114 bytes long but idk what the rest of everything is atm so I'm just filling it with unknown floats (most of the values are floats)
-        float unknowns[0x41];
+        Parameter unk_param_1;
+        Parameter uvScale;
+        Parameter unk_param_3;
+        Parameter unk_param_4;
+        Parameter unk_param_5;
+        Parameter unk_param_6;
+        Parameter unk_param_7;
+        Parameter unk_param_8;
+        Parameter unk_param_9;
+        Color color2; // Could be something else
+        int subdataOffset;
     };
 
     struct MapTexture // Used exclusively in the map.dat file to describe a texture in textures.tpl
@@ -148,4 +198,80 @@ namespace SPMEditor::LevelInternal
         u32 unk_5;
     };
 
+    struct FogEntry {
+        float start;
+        float end;
+
+        // Colors might be near / far colors used for blending
+        Color color;
+        Color unknown; 
+    };
+
+    struct PropertyCurve {
+        float start;
+        float unknown;
+        float increment; // Added every frame
+        float unknown_2;
+        float padding;
+    };
+
+    struct PropertyCurve2D {
+        PropertyCurve x, y; 
+    };
+
+    struct PropertyCurve3D {
+        PropertyCurve x, y, z;
+    };
+
+    struct TransformAnimation {
+        struct Keyframe {
+            float startFrame;
+            PropertyCurve3D position, rotation, scale;
+            float unknown[0x3C];
+        };
+
+        int nameOffset;
+        float unknown[6];
+        aiVector3D baseScale;
+        aiVector3D basePosition;
+        aiVector3D baseRotation;
+        float unkown_2[6];
+        int keyframeCount;
+    };
+
+    class InternalMaterialAnimation { 
+        public:
+            struct Keyframe {
+                float startFrame;
+                PropertyCurve2D offset, scale;
+                float unknown[5];
+            };
+
+            int materialNameOffset;
+            float unknown[3];
+            int keyframeCount;
+            // Followed by
+            // Keyframe keyframes[keyframeCount];
+    };
+
+    class MaterialAnimation {
+        public:
+            const char* animationName;
+            float unknown[3];
+            std::vector<InternalMaterialAnimation::Keyframe> keyframes;
+    };
+
+    struct AnimationHeader {
+        int nameOffset;
+        int constant;
+        float frameCount;
+        int transformAnimationOffset;
+        int materialAnimationOffset;
+        std::array<int, 4> padding;
+    };
+
+    struct Animation {
+        const char* name;
+        float frameCount;
+    };
 }

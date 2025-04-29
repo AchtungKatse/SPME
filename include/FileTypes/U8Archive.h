@@ -39,11 +39,11 @@ namespace SPMEditor
             Directory rootDirectory;
 
             static U8Archive ReadFromFile(const std::string& path, bool compressed);
-            static U8Archive ReadFromBytes(const std::vector<u8>& data, bool compressed);
+            static U8Archive ReadFromBytes(const u8* data, u32 size, bool compressed);
             static bool TryCreateFromDirectory(const std::string& path, U8Archive& output);
 
         private:
-            static Directory ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, int& index, const std::string& path = "");
+            static Directory ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, u32& index, const std::string& path = "");
             static U8File CreateNodeFromFile(const std::string& path);
             static void CreateNodeFromDirectory(const std::string& path);
     };

@@ -31,8 +31,10 @@ file(GLOB_RECURSE SOURCE_FILES
     ${CMAKE_SOURCE_DIR}/src/StbImpl.cpp
 )
 
-add_subdirectory(dependencies/spdlog)
+# add_subdirectory(dependencies/spdlog)
 add_subdirectory(dependencies/assimp)
+add_library(spdlog SHARED IMPORTED)
+
 
 set(INCLUDE_LIBRARIES assimp)
 if (NOT ${NO_BUILD_DISPLAY})

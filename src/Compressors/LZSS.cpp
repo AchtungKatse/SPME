@@ -179,21 +179,25 @@ namespace SPMEditor {
         return length > 2;
     }
 
+    std::vector<u8> output;
     std::vector<u8> LZSS::CompressLzss10(const std::vector<u8>& data) {
-        LogInfo("Compressing 0x{:x} bytes of lzss11 data", data.size());
-        std::vector<u8> output;
-        output.reserve(data.size() + 4);
+        return CompressLzss10((u8*)data.data(), data.size());
+    }
+
+    std::vector<u8> LZSS::CompressLzss10(u8* data, u64 size) {
+        LogInfo("Compressing 0x{:x} bytes of lzss11 data", size);
+        output.reserve(size + 4);
 
         output.push_back(0x10);
         output.push_back(0);
         output.push_back(0);
         output.push_back(0);
 
-        *((u32*)output.data()) |= ((u32)data.size() & 0xFFFFFF) << 8; // Writes length
+        *((u32*)output.data()) |= ((u32)size & 0xFFFFFF) << 8; // Writes length
 
 
         int outputOffset = 4;
-        for (int i = 0; i < data.size();)
+        for (int i = 0; i < size;)
         {
             // Go in sets of 8
             u8 flags = 0;

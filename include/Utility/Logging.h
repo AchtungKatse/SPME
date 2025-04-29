@@ -1,4 +1,5 @@
 #pragma once
+#include "spdlog/spdlog.h"
 
 namespace SPMEditor {
     #define LogTrace(...) ::spdlog::trace(__VA_ARGS__)

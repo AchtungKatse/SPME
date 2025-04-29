@@ -4,7 +4,8 @@ namespace SPMEditor {
     struct U8File
     {
         std::string name;
-        std::vector<u8> data;
+        u8* data;
+        u64 size;
     };
 
     struct Directory

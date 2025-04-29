@@ -4,6 +4,7 @@
 #include <GL/glext.h>
 #include <array>
 #include <filesystem>
+#include "stb_image.h"
 
 namespace SPMEditor 
 {

@@ -1,5 +1,6 @@
 #pragma once
 #include "Commands/Display/Shader.h"
+#include "glad/glad.h"
 #include "glm/mat3x3.hpp"
 #include "glm/mat4x4.hpp"
 

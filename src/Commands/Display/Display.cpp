@@ -5,10 +5,13 @@
 #include "GLFW/glfw3.h"
 #include "Types/Types.h"
 #include "assimp/Importer.hpp"
+#include "assimp/quaternion.h"
 #include "glad/glad.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/scalar_constants.hpp"
 #include "glm/geometric.hpp"
+#include "glm/gtc/quaternion.hpp"
 #include "stb_image.h"
 
 namespace SPMEditor {
@@ -67,7 +70,6 @@ namespace SPMEditor {
         // Final gl init
         LogTrace("Starting Render Loop");
         double lastTime = 0;
-        int frame = 0;
         while (!glfwWindowShouldClose(s_Window))
         {
             // Frame init
@@ -85,6 +87,59 @@ namespace SPMEditor {
             glm::mat4 view = glm::inverse(translation * rotation);
             glm::mat4 project = glm::perspective(90.0f, (float)s_ScreenWidth / s_ScreenHeight, .1f, 1000.0f);
 
+            // Animation
+            for (int i = 0; i < level.geometry->mNumAnimations; i++) {
+                const auto animation = level.geometry->mAnimations[i];
+                for (int c = 0; c < animation->mNumChannels; c++) {
+                    const auto channel = animation->mChannels[c];
+                    float targetTime = glm::mod(glfwGetTime() * 60, animation->mDuration);
+
+                    glm::vec3 pos, rot, scale;
+                    for (int k = 0; k < channel->mNumPositionKeys; k++)
+                        if (targetTime > channel->mPositionKeys[k].mTime)
+                        {
+                            const auto& key = channel->mPositionKeys[k];
+                            const auto& nextKey = channel->mPositionKeys[k + 1];
+                            auto position = (key.mValue + (nextKey.mValue - key.mValue) * (float)(targetTime - key.mTime) / (float)(nextKey.mTime - key.mTime));
+                            pos = *(glm::vec3*)&position;
+                        }
+
+                    for (int k = 0; k < channel->mNumRotationKeys; k++)
+                    {
+                        const auto& key = channel->mRotationKeys[k];
+                        const auto& nextKey = channel->mRotationKeys[k + 1];
+                        if (targetTime > key.mTime)
+                        {
+                            aiQuaternion quat;
+                            key.mValue.Interpolate(quat, key.mValue, nextKey.mValue, (float)(targetTime - key.mTime) / (float)(nextKey.mTime - key.mTime));
+                            auto euler = glm::eulerAngles(*(glm::quat*)&quat);
+                            rot.x = euler.z;
+                            rot.y = euler.y;
+                            rot.z = euler.x;
+                        }
+                    }
+                    for (int k = 0; k < channel->mNumScalingKeys; k++)
+                        if (targetTime > channel->mScalingKeys[k].mTime)
+                        {
+                            const auto& key = channel->mScalingKeys[k];
+                            const auto& nextKey = channel->mScalingKeys[k + 1];
+                            auto scaling = (key.mValue + (nextKey.mValue - key.mValue) * (float)(targetTime - key.mTime) / (float)(nextKey.mTime - key.mTime));
+                            scale = *(glm::vec3*)&scaling;
+                        }
+
+                    pos -= *(glm::vec3*)&channel->mPositionKeys[0].mValue;
+                    rot /= 180 * glm::pi<float>();
+
+                    const char* nodeName = channel->mNodeName.C_Str();
+                    auto node = rootObject.FindNode(nodeName);
+                    if (node != nullptr)
+                    {
+                        Assert(node != nullptr, "Failed to find node '{}', ({})", nodeName, (long)node);
+                        node->SetAnimationState(pos, rot, scale);
+                    }
+                }
+            }
+
             // Shader setup
             defaultShader.UseProgram();
             defaultShader.SetUniformMatrix4fv("g_ViewProjection", project * view);
@@ -99,7 +154,6 @@ namespace SPMEditor {
 
         glfwDestroyWindow(s_Window);
         glfwTerminate();
-
     }
 
     void Display::InitOpenGL() {
@@ -136,7 +190,7 @@ namespace SPMEditor {
 
         // Setup render environment
         glClearColor(.5f, .5f, .5f, 1.0f);
-        glDisable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
         glfwSwapInterval(1);
 
@@ -146,8 +200,7 @@ namespace SPMEditor {
         InitializeCallbacks(s_Window);
     }
 
-    void Display::MouseMoveCallback(GLFWwindow* window, double xPos, double yPos)
-    {
+    void Display::MouseMoveCallback(GLFWwindow* window, double xPos, double yPos) {
         static Vector2 lastPosition;
         Vector2 delta = Vector2(lastPosition.x - xPos, lastPosition.y - yPos);
         lastPosition = Vector2(xPos, yPos);
@@ -156,8 +209,7 @@ namespace SPMEditor {
         s_EulerAngles.x += delta.y * s_DeltaTime * (1.0 / 5);
     }
 
-    void Display::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-    {
+    void Display::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
         if (action == GLFW_PRESS) {
             if (key == GLFW_KEY_SPACE) s_InputDirection.y = -1;
             if (key == GLFW_KEY_LEFT_SHIFT) s_InputDirection.y = 1;
@@ -179,20 +231,17 @@ namespace SPMEditor {
         }
     }
 
-
     void Display::MouseButtonCallback(GLFWwindow* window, int buttonIndex, int action, int mods) {
     }
 
-    void Display::ResizeWindowCallback(GLFWwindow* window, int width, int height)
-    {
+    void Display::ResizeWindowCallback(GLFWwindow* window, int width, int height) {
         s_ScreenWidth = width;
         s_ScreenHeight = height;
 
         glViewport(0, 0, width, height);
     }
 
-    void Display::InitializeCallbacks(GLFWwindow* window)
-    {
+    void Display::InitializeCallbacks(GLFWwindow* window) {
         LogInfo("Setting up glfw callbacks");
         glfwSetKeyCallback(window, Display::KeyCallback);
         glfwSetMouseButtonCallback(window, Display::MouseButtonCallback);

@@ -1,4 +1,5 @@
 #include "FileTypes/U8Archive.h"
+#include "IO/FileHandle.h"
 #include "IO/FileReader.h"
 #include "Types/Types.h"
 #include <cstring>
@@ -22,11 +23,11 @@ namespace SPMEditor {
 
     U8Archive U8Archive::ReadFromFile(const std::string& path, bool compressed)
     {
-        const std::vector<u8> data = FileReader::ReadFileBytes(path);
-        return ReadFromBytes(data, compressed);
+        const FileHandle file = FileReader::ReadFileBytes(path);
+        return ReadFromBytes(file.data, file.size, compressed);
     }
 
-    Directory U8Archive::ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, int& index, const std::string& path)
+    Directory U8Archive::ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, u32& index, const std::string& path)
     { 
         int stringSectionStart = sizeof(Header) + numNodes * sizeof(Node);
 
@@ -61,9 +62,13 @@ namespace SPMEditor {
             }
             else // Is a file
             {
-                U8File file;
-                file.name = name;
-                file.data = std::vector<u8>(data + node.dataOffset, data + node.dataOffset + node.size);
+                U8File file = {
+                    .name = name,
+                    .data = new u8[node.size],
+                    .size = node.size,
+                };
+
+                memcpy(file.data, data + node.dataOffset, node.size);
                 std::string filePath = path + "/" + name;
                 dir.files.emplace_back(file);
                 index++;
@@ -73,13 +78,13 @@ namespace SPMEditor {
         return dir;
     }
 
-    U8Archive U8Archive::ReadFromBytes(const std::vector<u8>& input, bool compressed)
+    U8Archive U8Archive::ReadFromBytes(const u8* input, u32 size, bool compressed)
     {
-        static std::vector<u8> decompressed;
-        const u8* data = input.data();
+        std::vector<u8> decompressed;
+        const u8* data = input;
         if (compressed)
         {
-            decompressed = LZSS::DecompressBytes(input.data(), input.size());
+            decompressed = LZSS::DecompressBytes(input, size);
             data = decompressed.data();
         }
 
@@ -92,7 +97,7 @@ namespace SPMEditor {
         Node* nodes = (Node*)(data + sizeof(Header));
 
         U8Archive archive;
-        int index = 0;
+        u32 index = 0;
         archive.rootDirectory = ReadVirtualDirectory(data, nodes, numNodes, index);
         return archive;
     } 
@@ -123,16 +128,16 @@ namespace SPMEditor {
             fileNode.type = 0;
             fileNode.dataOffset = dataOffset;
             fileNode.nameOffset = namePosition;
-            fileNode.size = file.data.size();
+            fileNode.size = file.size;
             ByteSwap2(&fileNode, 2);
             ByteSwap4(&fileNode.dataOffset, 2);
 
             strcpy((char*)(data + nameOffset + namePosition), file.name.c_str());
             namePosition += file.name.size() + 1;
 
-            memcpy(data + dataOffset, file.data.data(), file.data.size());
+            memcpy(data + dataOffset, file.data, file.size);
 
-            dataOffset += file.data.size();
+            dataOffset += file.size;
             int oldDataOffset = dataOffset;
             dataOffset += 0x40 - (dataOffset - 0x20) % 0x40;
             LogInfo("Rounded data offset from {} to {}", oldDataOffset, dataOffset);
@@ -173,7 +178,7 @@ namespace SPMEditor {
         WriteDirectoryNode(output.data(), (U8Archive::Node*)(output.data() + sizeof(Header)), rootDirectory, nodeIndex, dataOffset, nameOffset, namePosition);
 
         // Write all the nodes
-        U8Archive::Node* nodes = (U8Archive::Node*)(output.data() + sizeof(U8Archive::Header));
+        /*U8Archive::Node* nodes = (U8Archive::Node*)(output.data() + sizeof(U8Archive::Header));*/
         return output;
     }
 
@@ -213,11 +218,14 @@ namespace SPMEditor {
                 continue;
 
             std::filesystem::path filePath(entry);
-            auto& files = dir.files;
+            FileHandle fileHandle = FileReader::ReadFileBytes(filePath.string());
+            std::vector<U8File>& files = dir.files;
             files.push_back({});
             U8File& file = files[files.size() - 1];
             file.name = filePath.filename().string();
-            file.data = FileReader::ReadFileBytes(filePath.string());
+            file.data = fileHandle.data;
+            file.size = fileHandle.size;
+
             LogInfo("\tFound file '{}'", file.name);
         }
 
