@@ -79,7 +79,7 @@ namespace SPMEditor {
             }
 
             // If that dir doesnt exist, imply create 
-            Directory dir;
+            u8_directory_t dir;
             dir.name = dirName;
             dir.AddFile(remainingPath, file);
             subdirs.push_back(dir);
@@ -104,27 +104,27 @@ namespace SPMEditor {
             FileWriter::WriteFile(filePath, file.data, file.size);
         }
 
-        for (const Directory& subdir : subdirs) {
+        for (const u8_directory_t& subdir : subdirs) {
             subdir.Dump(path);
         }
     }
 
-    int Directory::GetTotalFileCount() const {
+    int Directory::u8_directory_get_total_file_count() const {
         int count = files.size();
         for (const auto& subdir : subdirs)
-            count += subdir.GetTotalFileCount();
+            count += subdir.u8_directory_get_total_file_count();
 
         return count;
     }
 
-    int Directory::GetTotalNodeCount() const {
+    int Directory::u8_directory_get_total_node_count() const {
         int count = files.size() + subdirs.size();
         for (const auto& subdir : subdirs)
             count += subdir.GetTotalNodeCount();
         return count;
     }
 
-    int Directory::GetTotalNameSize() const {
+    int Directory::u8_directory_get_total_name_size() const {
         int size = name.size() + 1;
         for (const auto& file : files)
         {
@@ -139,7 +139,7 @@ namespace SPMEditor {
         return size;
     }
 
-    int Directory::GetTotalFileSizePadded() const {
+    int Directory::u8_directory_get_total_file_size_padded() const {
         int fileSize = 0;
 
         for (size_t i = 0; i < files.size(); i++) {
@@ -148,7 +148,7 @@ namespace SPMEditor {
         }
 
         for (size_t i = 0; i < subdirs.size(); i++) {
-            fileSize += subdirs[i].GetTotalFileSizePadded();
+            fileSize += subdirs[i].u8_directory_get_total_file_size_padded();
         }
 
         return fileSize;

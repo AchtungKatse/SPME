@@ -1,10 +1,7 @@
-#include <vector>
-#include <string>
+#include "defines.h"
 #include "Types/Types.h"
-#include <map>
-#include <unordered_map>
-#include <filesystem>
+
 #include <glad/glad.h>
 
-#include "Utility/Logging.h"
-#include "Utility/str2int.h"
+#include "core/logging.h"
+#include "core/str2int.h"

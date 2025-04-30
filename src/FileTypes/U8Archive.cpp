@@ -9,6 +9,13 @@
 #include <algorithm>
 #include "IO/FileWriter.h"
 
+// ==============================================
+// Private functions
+// ==============================================
+u8_directory_t ReadVirtualDirectory(const u8* data, u8_archive_node_t* nodes, int numNodes, u32& index, const char* path = "");
+U8File CreateNodeFromFile(const char* path);
+void CreateNodeFromDirectory(const char* path);
+
 namespace SPMEditor {
 
     bool U8Archive::Exists(const std::string& path) {
@@ -24,15 +31,15 @@ namespace SPMEditor {
         return ReadFromBytes(file.data, file.size, compressed);
     }
 
-    Directory U8Archive::ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, u32& index, const std::string& path) { 
+    u8_directory_t U8Archive::ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, u32& index, const std::string& path) { 
         int stringSectionStart = sizeof(Header) + numNodes * sizeof(Node);
 
         Node dirNode = nodes[index++];
-        ByteSwap2(&dirNode, 2);
-        ByteSwap4(&dirNode.dataOffset, 2);
+        byte_swap_array_stride_2(&dirNode, 2);
+        byte_swap_array_stride_4(&dirNode.dataOffset, 2);
 
         std::string name = (char*)(data + stringSectionStart + dirNode.nameOffset); 
-        Directory dir;
+        u8_directory_t dir;
         dir.name = name;
 
         LogInfo("Reading virt directory '%s' with index '%d'", name.c_str(), index);
@@ -41,8 +48,8 @@ namespace SPMEditor {
         {
             // Get the current node and convert to little endian (thanks x86)
             Node node = nodes[index];
-            ByteSwap2(&node, 2);
-            ByteSwap4(&node.dataOffset, 2);
+            byte_swap_array_stride_2(&node, 2);
+            byte_swap_array_stride_4(&node.dataOffset, 2);
 
             // Read the node name
             name = (char*)(data + stringSectionStart + node.nameOffset);
@@ -88,7 +95,7 @@ namespace SPMEditor {
         Assert(*(int*)data == 0x2D38AA55, "Data is not a valid u8 archive. Magic: 0x%x != 0x2D38AA55", *(int*)data);
 
         // Read node table
-        int numNodes = ByteSwap(*(int*)(data + 0x28)); // Basically jump to the size of the root node
+        int numNodes = byte_swap_int(*(int*)(data + 0x28)); // Basically jump to the size of the root node
 
         Node* nodes = (Node*)(data + sizeof(Header));
 
@@ -99,19 +106,19 @@ namespace SPMEditor {
     } 
 
     bool SortFiles(U8File a, U8File b) {return a.name < b.name;}
-    bool SortDirectories(Directory a, Directory b) {return a.name < b.name;}
+    bool SortDirectories(u8_directory_t a, u8_directory_t b) {return a.name < b.name;}
 
-    void WriteDirectoryNode(u8* data, U8Archive::Node* nodes, Directory& dir, int& nodeIndex, int& dataOffset, int& nameOffset, int& namePosition)
+    void WriteDirectoryNode(u8* data, U8Archive::Node* nodes, u8_directory_t& dir, int& nodeIndex, int& dataOffset, int& nameOffset, int& namePosition)
     {
         // Write the current directory
         U8Archive::Node& node = nodes[nodeIndex++];
         node.type = 0x100;
         node.dataOffset = 0;
         node.nameOffset = namePosition;
-        node.size = dir.GetTotalNodeCount() + nodeIndex;
+        node.size = dir.u8_directory_get_total_node_count() + nodeIndex;
 
-        ByteSwap2(&node, 2);
-        ByteSwap4(&node.dataOffset, 2);
+        byte_swap_array_stride_2(&node, 2);
+        byte_swap_array_stride_4(&node.dataOffset, 2);
 
         strcpy((char*)(data + nameOffset + namePosition), dir.name.c_str());
         namePosition += dir.name.size() + 1;
@@ -125,8 +132,8 @@ namespace SPMEditor {
             fileNode.dataOffset = dataOffset;
             fileNode.nameOffset = namePosition;
             fileNode.size = file.size;
-            ByteSwap2(&fileNode, 2);
-            ByteSwap4(&fileNode.dataOffset, 2);
+            byte_swap_array_stride_2(&fileNode, 2);
+            byte_swap_array_stride_4(&fileNode.dataOffset, 2);
 
             strcpy((char*)(data + nameOffset + namePosition), file.name.c_str());
             namePosition += file.name.size() + 1;
@@ -148,14 +155,14 @@ namespace SPMEditor {
     std::vector<u8> U8Archive::CompileU8()
     {
         // Calculate total file size
-        int nodeSectionSize = sizeof(U8Archive::Node) * (rootDirectory.GetTotalNodeCount() + 1); // Node size * (num directory + num files + rootNode)
+        int nodeSectionSize = sizeof(U8Archive::Node) * (rootDirectory.u8_directory_get_total_node_count() + 1); // Node size * (num directory + num files + rootNode)
 
-        int headerSize = sizeof(U8Archive::Header) + nodeSectionSize + rootDirectory.GetTotalNameSize();
+        int headerSize = sizeof(U8Archive::Header) + nodeSectionSize + rootDirectory.u8_directory_get_total_name_size();
         int fileSize = headerSize;
         fileSize += 0x40 - (fileSize - 0x20) % 0x40;
         int dataOffset = fileSize;
 
-        fileSize += rootDirectory.GetTotalFileSizePadded();
+        fileSize += rootDirectory.u8_directory_get_total_file_size_padded();
 
         std::vector<u8> output(fileSize);
         LogInfo("U8 Total size: %d", fileSize);
@@ -163,10 +170,10 @@ namespace SPMEditor {
         // Create the header
         U8Archive::Header* header = (U8Archive::Header*)(output.data());
         header->tag = U8Archive::Header::U8Tag;
-        header->size = nodeSectionSize + rootDirectory.GetTotalNameSize();
+        header->size = nodeSectionSize + rootDirectory.u8_directory_get_total_name_size();
         header->rootOffset = 0x20; // Constant
         header->dataOffset = dataOffset;
-        ByteSwap4(header, 4);
+        byte_swap_array_stride_4(header, 4);
 
         int nodeIndex = 0;
         int nameOffset = sizeof(Header) + nodeSectionSize;
@@ -203,9 +210,9 @@ namespace SPMEditor {
         /*}*/
     }
 
-    Directory LoadDirectory(const std::string& path) {
+    u8_directory_t LoadDirectory(const std::string& path) {
         std::filesystem::path directoryPath(path);
-        Directory dir;
+        u8_directory_t dir;
         dir.name = directoryPath.filename().string();
 
         LogInfo("Loading u8 data from directory '%s'", path.c_str());
@@ -241,7 +248,7 @@ namespace SPMEditor {
     bool U8Archive::TryCreateFromDirectory(const std::string& path, U8Archive& output)
     {
         Assert(std::filesystem::is_directory(path), "Trying to create u8 archive but %s is not a directory.", path.c_str());
-        Directory dot = LoadDirectory(path);
+        u8_directory_t dot = LoadDirectory(path);
         dot.name = ".";
         output.rootDirectory.subdirs.emplace_back(dot);
         output.rootDirectory.name = "";

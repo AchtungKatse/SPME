@@ -10,7 +10,7 @@ namespace SPMEditor
     {
         public:
             ShaderProgram();
-            ShaderProgram(const char* programName, std::initializer_list<Shader> shaders);
+            ShaderProgram(const char* programName, std::initializer_list<display_shader_t> shaders);
             ~ShaderProgram();
 
 

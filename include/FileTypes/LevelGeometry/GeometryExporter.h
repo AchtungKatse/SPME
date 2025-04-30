@@ -1,6 +1,8 @@
 #pragma once
 #include "FileTypes/LevelGeometry/InternalMapFile.h"
 #include "assimp/scene.h"
+#include <map>
+#include <vector>
 
 namespace SPMEditor {
     // Todo
@@ -78,7 +80,7 @@ namespace SPMEditor {
             template<typename T>
                 int _AppendInt(const T value) {
                     int fileOffset = mFileSize;
-                    *(T*)(mData + mFileSize + 0x20) = ByteSwap(value);
+                    *(T*)(mData + mFileSize + 0x20) = byte_swap_short(value);
                     mFileSize += sizeof(T);
                     return fileOffset;
                 }

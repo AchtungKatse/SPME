@@ -1,45 +1,31 @@
 #pragma once
 
-namespace SPMEditor 
-{
-    struct VertexAttribute
-    {
-        public:
-            enum Type 
-            {
-                NONE       = 0,
-                POSITION   = 1 << 0,
-                NORMAL     = 1 << 1,
-                UV         = 1 << 2,
-                UV2        = 1 << 3,
-                UV3        = 1 << 4,
-                UV4        = 1 << 5,
-                COLOR      = 1 << 6,
-                COLOR_2    = 1 << 7,
-                COLOR_3    = 1 << 8,
-                COLOR_4    = 1 << 9,
-                END        = 1 << 9
-            };
+#include "defines.h"
+SPME_HEADER_TOP
 
-            VertexAttribute() = default;
-            VertexAttribute(Type type, uint offset, uint size = 0);
-            uint GetElementCount() const;
+typedef enum {
+    DISPLAY_VERTEX_ATTRIBUTE_NONE       = 0,
+    DISPLAY_VERTEX_ATTRIBUTE_POSITION   = 1 << 0,
+    DISPLAY_VERTEX_ATTRIBUTE_NORMAL     = 1 << 1,
+    DISPLAY_VERTEX_ATTRIBUTE_UV         = 1 << 2,
+    DISPLAY_VERTEX_ATTRIBUTE_UV2        = 1 << 3,
+    DISPLAY_VERTEX_ATTRIBUTE_UV3        = 1 << 4,
+    DISPLAY_VERTEX_ATTRIBUTE_UV4        = 1 << 5,
+    DISPLAY_VERTEX_ATTRIBUTE_COLOR      = 1 << 6,
+    DISPLAY_VERTEX_ATTRIBUTE_COLOR_2    = 1 << 7,
+    DISPLAY_VERTEX_ATTRIBUTE_COLOR_3    = 1 << 8,
+    DISPLAY_VERTEX_ATTRIBUTE_COLOR_4    = 1 << 9,
+    DISPLAY_VERTEX_ATTRIBUTE_END        = 1 << 9
+} display_vertex_attribute_type_t;
 
-            Type type;
-            uint offset;
-            uint size;
-            
-    };
+u32 display_vertex_attribute_get_size(display_vertex_attribute_type_t attribute);
+u32 display_vertex_attribute_get_element_count(display_vertex_attribute_type_t attribute);
 
-    struct Vertex
-    {
-        Vertex();
-        Vertex(Vector3 position, Vector3 normal = Vector3(), Vector3 color = Vector3(), Vector2 uv = Vector2());
+typedef struct {
+    vec3 position;
+    vec3 normal;
+    vec3 color;
+    vec2 uv;
+} vertex_t;
 
-        Vector3 position;
-        Vector3 normal;
-        Vector3 color;
-        Vector2 uv;
-    };
-}
-
+SPME_HEADER_BOTTOM

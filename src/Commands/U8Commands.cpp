@@ -1,56 +1,50 @@
 #include "Commands/U8Commands.h"
 #include "FileTypes/U8Archive.h"
-#include "IO/FileWriter.h"
 #include "Compressors/LZSS.h"
+#include "core/filesystem.h"
+#include <cstring>
+#include <filesystem>
+#include <vector>
 
-namespace SPMEditor {
-    void U8Commands::Read(int& i, int argc, char** argv) {
-        for (; i < argc; i++) {
-            char* arg = argv[i];
-            switch (str2int(arg))
-            {
-                default:
-                    {
-                        LogError("U8 unrecognized argument '%s'", arg); 
-                        i--;
-                        return;
-                    }
-                case str2int("dump"):
-                    {
-                        Assert(i < argc - 2, "Incorrect format: u8 --dump <input file> <output directory>");
-                        std::string input = argv[i + 1];
-                        std::string output = argv[i + 2];
+SPME_HEADER_TOP
 
-                        Assert(std::filesystem::exists(input), "File '%s' does not exist.", input.c_str());
-                        U8Archive archive = U8Archive::ReadFromFile(input, true);
-                        archive.Dump(output);
+void u8_command_compile(u32 argc, const char** argv) {
+    // Get parameters
+    const char* input = argv[0];
+    const char* output = argv[1];
+    const char* compressed = argv[2];
 
-                        i += 2;
-                        break;
-                    }
-                case str2int("compile"):
-                    {
-                        Assert(i + 3 < argc, "Incorrect format: u8 --compile <input file> <output directory> <compressed (0 = false, 1 = true)>");
+    // Validate input
+    Assert(std::filesystem::exists(input), "Directory '%s' does not exist.", input);
 
-                        std::string input = argv[i + 1];
-                        std::string output = argv[i + 2];
-                        std::string compressed = argv[i + 3];
+    // Load the archive from file
+    U8Archive archive;
+    bool created_u8 = u8_archive_try_create_from_directory(input, &archive);
+    Assert(created_u8, "Failed to create U8 archive from directory '%s'", input);
 
-                        Assert(std::filesystem::exists(input), "Directory '%s' does not exist.", input.c_str());
+    u32 archive_size = 0;
+    const u8* data = u8_archive_compile(&archive, &archive_size);
 
-                        U8Archive archive;
-                        Assert(U8Archive::TryCreateFromDirectory(input, archive), "Failed to create U8 archive from directory '%s'", input.c_str());
-                        std::vector<u8> data = archive.CompileU8();
-
-                        if (compressed == "1" || compressed == "true")
-                            data = LZSS::CompressLzss10(data);
-
-                        FileWriter::WriteFile(output, data);
-
-                        i += 3;
-                        break;
-                    }
-            }
-        }
+    // Decompress the archive if needed
+    if (strcmp(compressed, "1") == 0 || strcmp(compressed, "true") == 0) {
+        // NOTE: this copies the archive_size to lzss_decompress_10 then overwrites it for the decompressed size
+        data = lzss_decompress_10(data, archive_size, &archive_size);
     }
+
+    filesystem_write_file(output, data, archive_size);
 }
+
+void u8_command_extract(u32 argc, const char** argv) {
+    // Get parameters
+    const char* input = argv[0];
+    const char* output = argv[1];
+
+    // Read the archive from file
+    Assert(std::filesystem::exists(input), "u8_command_compile failed. File '%s' does not exist.", input);
+    U8Archive archive = u8_archive_read_from_file(input, true);
+
+    // Dump it to the output directory
+    u8_archive_dump(&archive, output);
+}
+
+SPME_HEADER_BOTTOM

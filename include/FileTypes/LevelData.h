@@ -3,17 +3,17 @@
 #include "FileTypes/U8Archive.h"
 #include "assimp/scene.h"
 
-namespace SPMEditor {
-    class LevelData
-    {
-        public:
-            static LevelData LoadLevelFromFile(const std::string& path, bool compressed, const std::string& mapNameOverride = "");
-            static LevelData LoadLevelFromBytes(const std::string& name, const std::vector<u8>& data, bool compressed, const std::string& mapNameOverride = "");
-            static LevelData LoadLevelFromBytes(const std::string& name, const u8* data, u64 size, bool compressed, const std::string& mapNameOverride = "");
+SPME_HEADER_TOP
 
-            U8Archive u8Files;
-            std::string name;
-            aiScene* geometry;
-            std::vector<LevelInternal::FogEntry> fogSettings;
-    };
-}
+typedef struct {
+    U8Archive u8Files;
+    char* name;
+    aiScene* geometry;
+    FogEntry* fogSettings;
+    u32 fog_settings_count;
+} LevelData;
+
+LevelData level_data_load_from_file(const char* path, bool compressed, const char* mapNameOverride);
+LevelData level_data_load_from_bytes(const char* name, const u8* data, u64 size, bool compressed, const std::string& mapNameOverride);
+
+SPME_HEADER_BOTTOM

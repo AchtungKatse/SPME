@@ -1,5 +1,6 @@
 #pragma once
 
-namespace SPMEditor::U8Commands {
-    void Read(int& i, int argc, char** argv);
+namespace SPMEditor {
+    void u8_command_extract(const char** argv);
+    void u8_command_compile(const char** argv);
 }

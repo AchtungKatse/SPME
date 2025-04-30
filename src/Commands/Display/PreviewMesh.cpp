@@ -25,7 +25,7 @@ namespace SPMEditor {
         // Get vertex attributes
         // ===================
         int stride = 0;
-        const std::vector<VertexAttribute>& attributes = GetVertexAttributes(mesh, stride);
+        const std::vector<display_vertex_attribute>& attributes = GetVertexAttributes(mesh, stride);
         char* vertexBuffer = new char[stride * mesh->mNumVertices];
 
         for (size_t i = 0; i < sizeof(vertexBuffer) / sizeof(float); i++)
@@ -63,31 +63,31 @@ namespace SPMEditor {
         delete[] vertexBuffer;
     }
 
-    std::vector<VertexAttribute> PreviewMesh::GetVertexAttributes(const aiMesh* mesh, int& stride)
+    std::vector<display_vertex_attribute> PreviewMesh::GetVertexAttributes(const aiMesh* mesh, int& stride)
     {
-        std::vector<VertexAttribute> attributes;
+        std::vector<display_vertex_attribute> attributes;
         attributes.clear();
 
         if (mesh->HasPositions())
         {
-            attributes.emplace_back(VertexAttribute(VertexAttribute::POSITION, stride));
+            attributes.emplace_back(display_vertex_attribute(display_vertex_attribute::POSITION, stride));
             stride += sizeof(Vector3);
         }
         if (mesh->HasNormals())
         {
-            attributes.emplace_back(VertexAttribute(VertexAttribute::NORMAL, stride));
+            attributes.emplace_back(display_vertex_attribute(display_vertex_attribute::NORMAL, stride));
             stride += sizeof(Vector3);
         }
         for (int i = 0; i < 4; i++)
         {
             if (mesh->HasVertexColors(i))
             {
-                attributes.emplace_back(VertexAttribute((VertexAttribute::Type)(VertexAttribute::COLOR + i), stride));
+                attributes.emplace_back(display_vertex_attribute((display_vertex_attribute::Type)(display_vertex_attribute::COLOR + i), stride));
                 stride += sizeof(aiColor4D);
             }
             if (mesh->HasTextureCoords(i))
             {
-                attributes.emplace_back(VertexAttribute((VertexAttribute::Type)(VertexAttribute::UV + i), stride));
+                attributes.emplace_back(display_vertex_attribute((display_vertex_attribute::Type)(display_vertex_attribute::UV + i), stride));
                 stride += sizeof(Vector2);
             }
         }
@@ -95,45 +95,45 @@ namespace SPMEditor {
         return attributes;
     }
 
-    void PreviewMesh::FlattenVertexArray(void* output, const aiMesh* mesh,  const std::vector<VertexAttribute>& attributes, const int stride) {
+    void PreviewMesh::FlattenVertexArray(void* output, const aiMesh* mesh,  const std::vector<display_vertex_attribute>& attributes, const int stride) {
         for (size_t i = 0; i < attributes.size(); i ++) {
-            const VertexAttribute& attr = attributes[i];
+            const display_vertex_attribute& attr = attributes[i];
 
             for (uint vertexIndex = 0; vertexIndex < mesh->mNumVertices; vertexIndex++)
             {
 
                 void* source = (char*)output + vertexIndex * stride + attr.offset;
                 switch (attributes[i].type) {
-                    case VertexAttribute::NONE:
+                    case display_vertex_attribute::NONE:
                         break;
-                    case VertexAttribute::POSITION:
+                    case display_vertex_attribute::POSITION:
                         *((aiVector3D*)source) = mesh->mVertices[vertexIndex];
                         break;
-                    case VertexAttribute::NORMAL:
+                    case display_vertex_attribute::NORMAL:
                         *((aiVector3D*)source) = mesh->mNormals[vertexIndex];
                         break;
-                    case VertexAttribute::UV:
+                    case display_vertex_attribute::UV:
                         *((aiVector2D*)source) = *(aiVector2D*)&mesh->mTextureCoords[0][vertexIndex];
                         break;
-                    case VertexAttribute::UV2:
+                    case display_vertex_attribute::UV2:
                         *((aiVector2D*)source) = *(aiVector2D*)&mesh->mTextureCoords[1][vertexIndex];
                         break;
-                    case VertexAttribute::UV3:
+                    case display_vertex_attribute::UV3:
                         *((aiVector2D*)source) = *(aiVector2D*)&mesh->mTextureCoords[2][vertexIndex];
                         break;
-                    case VertexAttribute::UV4:
+                    case display_vertex_attribute::UV4:
                         *((aiVector2D*)source) = *(aiVector2D*)&mesh->mTextureCoords[3][vertexIndex];
                         break;
-                    case VertexAttribute::COLOR:
+                    case display_vertex_attribute::COLOR:
                         *((aiColor4D*)source) = *(aiColor4D*)&mesh->mColors[0][vertexIndex];
                         break;
-                    case VertexAttribute::COLOR_2:
+                    case display_vertex_attribute::COLOR_2:
                         *((aiColor4D*)source) = *(aiColor4D*)&mesh->mColors[1][vertexIndex];
                         break;
-                    case VertexAttribute::COLOR_3:
+                    case display_vertex_attribute::COLOR_3:
                         *((aiColor4D*)source) = *(aiColor4D*)&mesh->mColors[2][vertexIndex];
                         break;
-                    case VertexAttribute::COLOR_4:
+                    case display_vertex_attribute::COLOR_4:
                         *((aiColor4D*)source) = *(aiColor4D*)&mesh->mColors[3][vertexIndex];
                         break;
                 }

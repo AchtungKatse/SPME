@@ -1,118 +1,136 @@
 #include "Commands/CommandType.h"
-#include "Commands/Display/Display.h"
-#include "Commands/LZSSCommands.h"
 #include "Commands/U8Commands.h"
-#include "FileTypes/LevelGeometry/GeometryExporter.h"
-#include "FileTypes/LevelData.h"
+#include "Commands/debug_commands.h"
+#include "Commands/map_commands.h"
 #include "Utility/Logging.h"
-#include "assimp/Exporter.hpp"
-#include "assimp/postprocess.h"
 #include "Commands/TPLCommands.h"
-#include "assimp/Importer.hpp"
+#include <cstring>
 
 using namespace SPMEditor;
-std::array<SPMEditor::CommandGroup*, 1> commands = {
-    new LZSSCommands(),
+
+command_t debug_commands[] = {
+    {
+        .name = "view",
+        .format = "<map.bin>",
+        .description = "Opens a 3d preview of a SPM map.bin file",
+        .parameter_count = 1,
+        .run = debug_command_view,
+    },
 };
 
-void ConvertCommand(int argc, char** argv);
-char ToLower(char c) {
-    if (c >= 'A' && c <= 'Z') 
-        return c + ('a' - 'A');
-    return c;
-}
+command_t map_commands[] = {
+    {
+        .name = "to_fbx",
+        .format = "<map.bin> <output file> [map name]",
+        .description = "Converts a SPM map.bin file into an FBX file. The map file should be taken from DATA/files/map.",
+        .parameter_count = 2,
+        .run = map_command_to_fbx,
+    }, {
+        .name = "from_glb",
+        .format = "<map.glb> <output_file>",
+        .description = "Converts a glb model to a SPM map.dat file. Note, this only changes the map.dat from a u8 extracted map file at [map_name]/dvd/map/[map_name]/map.dat. Please run u8 compile to create a spm map.bin to reinsert into the game files.",
+        .parameter_count = 2,
+        .run = map_command_from_glb,
+    },
+};
 
-std::string ToLower(const std::string& string) {
-    std::string out;
-    out.reserve(string.size());
+command_t tpl_commands[] = {
+    {
+        .name = "dump",
+        .format = "<texture.tpl> <output directory>",
+        .description = "Writes all textures in a tpl to a directory",
+        .parameter_count = 2,
+        .run = tpl_command_dump,
+    },
+};
+ 
+command_t u8_commands[] = {
+    {
+        .name = "extract",
+        .format = "<u8 file> <output directory>",
+        .description = "Extracts the contents of a u8 to a directory",
+        .parameter_count = 2,
+        .run = u8_command_extract,
+    }, {
+        .name = "compile",
+        .format = "<directory> <output file> <compressed>",
+        .description = "Creates a u8 archive file from a directory",
+        .parameter_count = 3,
+        .run = u8_command_compile,
+    },
+};
 
-    for (const char c : string) {
-        out += ToLower(c);
-    }
+command_group_t command_groups[] = {
+    {
+        .name = "u8",
+        .command_count = sizeof(u8_commands) / sizeof(command_t),
+        .commands = u8_commands,
+    }, {
+        .name = "tpl",
+        .command_count = sizeof(tpl_commands) / sizeof(command_t),
+        .commands = tpl_commands,
+    }, {
+        .name = "map",
+        .command_count = sizeof(map_commands) / sizeof(command_t),
+        .commands = map_commands,
+    }, {
+        .name = "debug",
+        .command_count = sizeof(debug_commands) / sizeof(command_t),
+        .commands = debug_commands,
+    }, 
+};
 
-    return out;
-}
+constexpr u32 command_group_count = sizeof(command_groups) / sizeof(command_group_t);
+
+char char_to_lower(char c);
+void string_to_lower(char* string);
+
+bool find_command_group(const char* name, command_group_t* out_group);
+void display_available_commands();
 
 int main(int argc, char** argv) {
     // Initialization
     LoggingInitialize();
 
-    // Read commands
-    for (int i = 1; i < argc; i++) {
-        std::string arg = ToLower(argv[i]);
+    // Search for the target command group
+    char* target_group = argv[1];
+    string_to_lower(target_group);
+    command_group_t* target_command_group = nullptr;
 
-        bool foundCommand = false;
-        for (CommandGroup* group : commands) {
-            const std::string groupName = ToLower(group->GetName());
-            if (groupName != arg)
-                continue;
+    if (!find_command_group(target_group, target_command_group)) {
+        return -1;
+    }
 
-            const std::string commandName = ToLower(argv[i + 1]);
-            for (const Command* command : group->GetCommands()) {
-                const std::string currentCommandName = ToLower(command->GetName());
+    // Search for the command inside the group
+    char* command_name = argv[2];
+    string_to_lower(command_name);
 
-                if (currentCommandName != commandName) 
-                    continue;
-
-                if (i + command->GetParameterCount() >= argc) {
-                    LogError("Failed to read command '%s'. Invalid number of arguments, expected %d, got %d", commandName.c_str(), command->GetParameterCount(), argc - i - 1);
-                    abort();
-                }
-
-                foundCommand = true;
-                command->Run(argv + i + 2); // add 2 since [command group] [command]
-                i += command->GetParameterCount();
-            }
-        }
-
-        if (foundCommand)
-            continue;
-
-        switch (str2int(arg.c_str()))
-        {
-            default:
-                LogInfo("Unrecognized command '%s'", arg.c_str());
-                break;
-            case str2int("tpl"):
-                i++;
-                TPLCommands::Read(i, argc, argv);
-                break;
-            case str2int("u8"):
-                i++;
-                U8Commands::Read(i, argc, argv);
-                break;
-            case str2int("convert"):
-                i++;
-                ConvertCommand(argc - i, argv + i);
-                break;
-            case str2int("export"):
-                {
-                    const std::string input = argv[i + 1];
-                    const std::string output = argv[i + 2];
-                    Assert(std::filesystem::exists(input), "Export Failed. Map directory '%s' does not exist", input.c_str());
-                    Assert(std::filesystem::is_regular_file(input), "Export Failed. Map directory '%s' is not a regular file.", input.c_str());
-
-                    GeometryExporter* exporter = GeometryExporter::Create();
-                    Assimp::Importer importer;
-                    const aiScene* scene = importer.ReadFile(input.c_str(), aiPostProcessSteps::aiProcess_Triangulate | aiProcess_FlipWindingOrder | aiPostProcessSteps::aiProcess_EmbedTextures | aiPostProcessSteps::aiProcess_ValidateDataStructure | aiPostProcessSteps::aiProcess_FindInvalidData | aiPostProcessSteps::aiProcess_ForceGenNormals | aiProcess_JoinIdenticalVertices | aiProcess_GenUVCoords);
-                    Assert(scene, "Export failed. Assimp failed to load scene '%s'. Supported formats are GLB, GLTF, and FBX.", input.c_str());
-                    exporter->Write(scene, output);
-                    break;
-                }
-#ifndef NO_BUILD_DISPLAY
-            case str2int("display"):
-                const std::string fileName = argv[i + 1];
-                if (!std::filesystem::exists(fileName))
-                    continue;
-                if (!std::filesystem::is_regular_file(fileName))
-                    continue;
-
-                LevelData level = LevelData::LoadLevelFromFile(argv[i + 1], true);
-                Display::DisplayLevel(level);
-                break;
-#endif
+    bool found_command = false;
+    const command_t* command = nullptr;
+    for (u32 i = 0; i < target_command_group->command_count; i++) {
+        if (strcmp(target_command_group->commands[i].name, command_name)) {
+            found_command = true;
+            break;
         }
     }
+
+    if (!found_command) {
+        LogError("Failed to find command '%s' in group '%s'."); 
+        display_available_commands();
+        return -1; 
+    }
+
+    // Run the command if parameters are correct
+    if (argc - 3 >= command->parameter_count) {
+        LogError("Cannot run command '%s %s' because an invalid number of parameters were given. Expected %d parameters, got %d", 
+                target_command_group->name, 
+                command->name, 
+                command->parameter_count, 
+                argc - 3);
+        return -1;
+    }
+
+    command->run((const char**)argv + 2); // Cast argv to const
 
     // Shutdown
     LoggingShutdown();
@@ -120,21 +138,33 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void ConvertCommand(int argc, char** argv) {
-    Assert(argc >= 2, "Convert command requrires two arguments, %d provided. \n\tUsage: convert <filepath> <Output format (i.e. fbx, glb)> <Map Name [Optional]>", argc);
-    const char* inputFile = argv[0];
-    const char* format = argv[1];
-    LogInfo("Converting file \"%s\"", inputFile);
-
-    const char* mapName = "";
-    if (argc > 2) {
-        mapName = argv[2];
+bool find_command_group(const char* target_group_name, command_group_t* out_group) {
+    bool foundCommandGroup = false;
+    for (u32 i = 0; i < command_group_count; i++) {
+        command_group_t* group = &command_groups[i];
+        if (strcmp(group->name, target_group_name) == 0) {
+            foundCommandGroup = true;
+            break;
+        }
     }
 
-    LevelData level = LevelData::LoadLevelFromFile(inputFile, true, mapName);
+    if (!foundCommandGroup) {
+        LogError("Failed to find command group '%s'", target_group_name);
+        return false;
+    }
 
-    LogInfo("------- Exporting Model -------");
-    Assimp::Exporter exporter;
-    const auto exportSuccess = exporter.Export(level.geometry, format, level.name + "." + format, aiProcess_EmbedTextures | aiProcess_Triangulate | aiProcess_GenBoundingBoxes | aiProcess_FlipWindingOrder);
-    Assert(exportSuccess == aiReturn_SUCCESS, "Failed to export %s", level.name.c_str());
+    return true;
+}
+
+char char_to_lower(char c) {
+    if (c >= 'A' && c <= 'Z') 
+        return c + ('a' - 'A');
+    return c;
+}
+
+void string_to_lower(char* string) {
+    u32 len = strlen(string);
+    for (u32 i = 0; i < len; i ++) {
+        string[i] = char_to_lower(string[i]);
+    }
 }
