@@ -3,6 +3,7 @@
 #include "glad/glad.h"
 #include "glm/mat3x3.hpp"
 #include "glm/mat4x4.hpp"
+#include <string>
 
 namespace SPMEditor
 {
@@ -10,7 +11,7 @@ namespace SPMEditor
     {
         public:
             ShaderProgram();
-            ShaderProgram(const char* programName, std::initializer_list<display_shader_t> shaders);
+            ShaderProgram(const char* programName, std::initializer_list<Shader> shaders);
             ~ShaderProgram();
 
 

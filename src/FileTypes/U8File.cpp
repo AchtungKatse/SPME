@@ -1,6 +1,7 @@
 #include "FileTypes/U8File.h"
-#include "IO/FileWriter.h"
+#include "core/filesystem.h"
 #include <cstdio>
+#include <filesystem>
 
 namespace SPMEditor {
     Directory::Directory() : name(""), files({}), subdirs({}) { }
@@ -79,7 +80,7 @@ namespace SPMEditor {
             }
 
             // If that dir doesnt exist, imply create 
-            u8_directory_t dir;
+            Directory dir;
             dir.name = dirName;
             dir.AddFile(remainingPath, file);
             subdirs.push_back(dir);
@@ -101,30 +102,30 @@ namespace SPMEditor {
             LogInfo("\tDumping '%s' in '%s'", file.name.c_str(), path);
             char filePath[0x500] = {};
             snprintf(filePath, sizeof(filePath), "%s/%s", path, file.name.c_str());
-            FileWriter::WriteFile(filePath, file.data, file.size);
+            filesystem_write_file(filePath, file.data, file.size);
         }
 
-        for (const u8_directory_t& subdir : subdirs) {
+        for (const Directory& subdir : subdirs) {
             subdir.Dump(path);
         }
     }
 
-    int Directory::u8_directory_get_total_file_count() const {
+    int Directory::GetTotalFileCount() const {
         int count = files.size();
         for (const auto& subdir : subdirs)
-            count += subdir.u8_directory_get_total_file_count();
+            count += subdir.GetTotalFileCount();
 
         return count;
     }
 
-    int Directory::u8_directory_get_total_node_count() const {
+    int Directory::GetTotalNodeCount() const {
         int count = files.size() + subdirs.size();
         for (const auto& subdir : subdirs)
             count += subdir.GetTotalNodeCount();
         return count;
     }
 
-    int Directory::u8_directory_get_total_name_size() const {
+    int Directory::GetTotalNameSize() const {
         int size = name.size() + 1;
         for (const auto& file : files)
         {
@@ -139,7 +140,7 @@ namespace SPMEditor {
         return size;
     }
 
-    int Directory::u8_directory_get_total_file_size_padded() const {
+    int Directory::GetTotalFileSizePadded() const {
         int fileSize = 0;
 
         for (size_t i = 0; i < files.size(); i++) {
@@ -148,7 +149,7 @@ namespace SPMEditor {
         }
 
         for (size_t i = 0; i < subdirs.size(); i++) {
-            fileSize += subdirs[i].u8_directory_get_total_file_size_padded();
+            fileSize += subdirs[i].GetTotalFileSizePadded();
         }
 
         return fileSize;

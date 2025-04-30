@@ -1,14 +1,31 @@
 #pragma once
+#include "glad/glad.h"
 
-typedef enum : unsigned int {
-    DISPLAY_SHADER_TYPE_FRAGMENT = GL_FRAGMENT_SHADER,
-    DISPLAY_SHADER_TYPE_VERTEX = GL_VERTEX_SHADER
-} display_shader_type_t;
+namespace SPMEditor
+{
 
-struct display_shader_t {
-    u32 shader_index;
-};
+    enum class ShaderType : unsigned int
+    {
+        Fragment = GL_FRAGMENT_SHADER,
+        Vertex = GL_VERTEX_SHADER
+    };
 
-display_shader_t display_shader_create_from_source(const char* shaderName, const char* shaderSource, display_shader_type_t type);
-void display_shader_destroy(display_shader_t shader);
+    class Shader
+    {
+        friend class ShaderProgram;
 
+        public:
+            ~Shader();
+            static Shader CreateFromSource(const char* shaderName, const char* shaderSource, ShaderType type);
+
+        protected:
+            Shader(const char* shaderName, const char* filePath, ShaderType type);
+
+        private:
+            Shader() = default;
+
+            void Create(const char* name, const char* source, ShaderType type);
+
+            unsigned int m_ShaderIndex;
+    };
+}

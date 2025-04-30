@@ -10,31 +10,9 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/scalar_constants.hpp"
+#include "glm/geometric.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "stb_image.h"
-#include "Commands/Display/PreviewObject.h"
-#include "GLFW/glfw3.h"
-
-// ======================================
-// Internal Functions
-// ======================================
-static void InitOpenGL();
-static void MouseMoveCallback(GLFWwindow* window, double xPos, double yPos);
-static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-static void MouseButtonCallback(GLFWwindow* window, int buttonIndex, int action, int mods);
-static void ResizeWindowCallback(GLFWwindow* window, int width, int height);
-static void InitializeCallbacks(GLFWwindow* window);
-
-// ======================================
-// State data
-// ======================================
-constexpr uint GLMajorVersion = 3;
-constexpr uint GLMinorVersion = 3;
-double s_DeltaTime;
-int s_ScreenWidth, s_ScreenHeight;
-bool s_Initialized;
-const char* s_VertexSource;
-const char* s_FragmentSource;
 
 namespace SPMEditor {
     GLFWwindow* s_Window;
@@ -60,8 +38,8 @@ namespace SPMEditor {
         // Setup shader
         LogTrace("Creating Shaders");
         ShaderProgram defaultShader("Default shader", {
-                Shader::CreateFromSource("Vertex", s_VertexSource, display_shader_type_t::Vertex),
-                Shader::CreateFromSource("Fragment", s_FragmentSource, display_shader_type_t::Fragment)});
+                Shader::CreateFromSource("Vertex", s_VertexSource, ShaderType::Vertex),
+                Shader::CreateFromSource("Fragment", s_FragmentSource, ShaderType::Fragment)});
 
         glm::vec3 lightDir = glm::normalize(glm::vec3(.707, -.707, .5));
         defaultShader.UseProgram();

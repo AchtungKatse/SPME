@@ -1,22 +1,23 @@
 #include "FileTypes/LevelData.h"
 #include "FileTypes/LevelGeometry/LevelGeometry.h"
 #include "FileTypes/U8Archive.h"
-#include "IO/FileReader.h"
 #include "assimp/material.h"
+#include "core/filesystem.h"
 #include <cstdio>
+#include <filesystem>
 
 namespace SPMEditor {
     LevelData LevelData::LoadLevelFromFile(const std::string& path, bool compressed, const std::string& mapNameOverride) {
         Assert(std::filesystem::exists(path), "Failed to find file %s", path.c_str());
         std::filesystem::path filePath(path);
-        FileHandle handle = FileReader::ReadFileBytes(path);
+        FileHandle handle = filesystem_read_file(path.c_str());
         
         const std::string& fileName = filePath.filename().string();
         const std::string& name = fileName.substr(0, fileName.size() - 4);
 
         LogInfo("Loaded file '%s'", fileName.c_str());
 
-        return LoadLevelFromBytes(name, handle.data, handle.size, compressed, mapNameOverride);
+        return LevelData::LoadLevelFromBytes(name, (const u8*)handle.data, handle.size, compressed, mapNameOverride);
     }
 
     void ReadMat(aiMaterial* mat) {

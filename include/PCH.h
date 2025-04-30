@@ -3,5 +3,5 @@
 
 #include <glad/glad.h>
 
-#include "core/logging.h"
+#include "core/Logging.h"
 #include "core/str2int.h"

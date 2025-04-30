@@ -2,7 +2,7 @@
 #include "FileTypes/LevelGeometry/InternalMapFile.h"
 #include "FileTypes/TPL.h"
 #include "Types/Types.h"
-#include "Utility/Logging.h"
+#include "core/Logging.h"
 #include "assimp/material.h"
 #include "assimp/types.h"
 #include "assimp/vector3.h"
@@ -72,7 +72,7 @@ namespace SPMEditor {
 
         // Fix all things that need pointers to other things
         for (size_t i = 0; i < mVCDPtrs.size(); i++) {
-            *(int*)(mData + mVCDPtrs[i] + 0x20) = byte_swap_int(mVCDAddress);
+            *(int*)(mData + mVCDPtrs[i] + 0x20) = ByteSwap(mVCDAddress);
         }
 
         for (const auto& subdata: mObjectSubdatas) {
@@ -81,23 +81,23 @@ namespace SPMEditor {
             AppendInt32(0);
             AppendInt32(0);
             AppendInt32(0);
-            *(int*)(mData + subdata.offset + 0x20) = byte_swap_int(offset);
+            *(int*)(mData + subdata.offset + 0x20) = ByteSwap(offset);
         }
 
         for (const auto& subdata : mMaterialSubdatas) {
             int offset = AppendInt32(0);
             AppendInt32(0);
             AppendInt32(0);
-            *(int*)(mData + subdata.offset + 0x20) = byte_swap_int(offset);
+            *(int*)(mData + subdata.offset + 0x20) = ByteSwap(offset);
         }
 
-        *(int*)(mData + 0x4 + 0x20) = byte_swap_int(mRootObjectPtr);
+        *(int*)(mData + 0x4 + 0x20) = ByteSwap(mRootObjectPtr);
 
 
         AddPadding(0x4);
 
         for (size_t stringPointer : mStringPointers) {
-            *(int*)(mData + stringPointer + 0x20) = byte_swap_int(byte_swap_int(*(int*)(mData + stringPointer + 0x20)) + mFileSize);
+            *(int*)(mData + stringPointer + 0x20) = ByteSwap(ByteSwap(*(int*)(mData + stringPointer + 0x20)) + mFileSize);
         }
         AddPadding(0x4);
         AppendBuffer(mTextBuffer, mTextBufferSize);
@@ -113,7 +113,7 @@ namespace SPMEditor {
         // Write to disk
         output.write(mData, mFileSize);
         WriteSectionTable(output);
-        size_t fileSize = byte_swap_int((int)output.tellp());
+        size_t fileSize = ByteSwap((int)output.tellp());
         output.seekp(std::ios::beg);
         output.write((const char*)&fileSize, 4);
     }
@@ -126,7 +126,7 @@ namespace SPMEditor {
         fileHeader->pointerListStart = mFileSize - sizeof(FileHeader) - 0x4 * mPointerList.size();
         fileHeader->pointerEntryCount = mPointerList.size();
         fileHeader->sectionCount = mSections.size();
-        byte_swap_array_stride_4(fileHeader, 4);
+        ByteSwap4(fileHeader, 4);
     }
 
     void GeometryExporter::WriteInfoSection() {
@@ -208,8 +208,8 @@ namespace SPMEditor {
         for (size_t i = 0; i < mSections.size(); i++) {
             strcpy(nameBuffer + nameOffset, mSections[i].name);
 
-            int offset = byte_swap_u32(mSections[i].offset);
-            int _nameOffset = byte_swap_int(nameOffset);
+            int offset = ByteSwap(mSections[i].offset);
+            int _nameOffset = ByteSwap(nameOffset);
             output.write((const char*)&offset, 4);
             output.write((const char*)&_nameOffset, 4);
             nameOffset += strlen(mSections[i].name) + 1;
@@ -231,9 +231,9 @@ namespace SPMEditor {
         for (const auto pair : mVertexTable) {
             const auto v = pair.first;
             int vertexIndex = pair.second;
-            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x24) = byte_swap_short((s16)(v.x * _vertexScale));
-            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x26) = byte_swap_short((s16)(v.y * _vertexScale));
-            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x28) = byte_swap_short((s16)(v.z * _vertexScale));
+            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x24) = ByteSwap((s16)(v.x * _vertexScale));
+            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x26) = ByteSwap((s16)(v.y * _vertexScale));
+            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x28) = ByteSwap((s16)(v.z * _vertexScale));
         }
 
         AddPadding(0x20);
@@ -242,10 +242,10 @@ namespace SPMEditor {
         for (const auto pair : mColorTable) {
             const auto color = pair.first;
             int index = pair.second;
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x24) = byte_swap_u8((u8)(color.r * 255));
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x25) = byte_swap_u8((u8)(color.r * 255));
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x26) = byte_swap_u8((u8)(color.r * 255));
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x27) = byte_swap_u8((u8)(color.r * 255));
+            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x24) = ByteSwap((u8)(color.r * 255));
+            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x25) = ByteSwap((u8)(color.r * 255));
+            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x26) = ByteSwap((u8)(color.r * 255));
+            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x27) = ByteSwap((u8)(color.r * 255));
         }
 
         AddPadding(0x20);
@@ -255,8 +255,8 @@ namespace SPMEditor {
         for (const auto pair : mUvTable) {
             const auto uv = pair.first;
             int index = pair.second;
-            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x24) = byte_swap_short((s16)(uv.x * _uvScale));
-            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x26) = byte_swap_short((s16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
+            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x24) = ByteSwap((s16)(uv.x * _uvScale));
+            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x26) = ByteSwap((s16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
         }
 
         AddPadding(0x20);
@@ -265,9 +265,9 @@ namespace SPMEditor {
         for (const auto pair : mNormalTable) {
             const auto normal = pair.first;
             int index = pair.second;
-            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = byte_swap_u8((u8)(normal.x * 64));
-            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = byte_swap_u8((u8)(normal.y * 64));
-            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = byte_swap_u8((u8)(normal.z * 64));
+            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = ByteSwap((u8)(normal.x * 64));
+            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = ByteSwap((u8)(normal.y * 64));
+            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = ByteSwap((u8)(normal.z * 64));
         }
         AddPadding(0x20);
     }
@@ -558,18 +558,18 @@ namespace SPMEditor {
         for (size_t i = 0; i < node->mNumChildren; i++) {
             // Write next
             if (i < node->mNumChildren - 1) {
-                children[i]->nextSibling = byte_swap_int(childrenOffsets[i + 1]);
+                children[i]->nextSibling = ByteSwap(childrenOffsets[i + 1]);
                 AddPointer(childrenOffsets[i] + offsetof(RawObject, nextSibling));
             }
             // Write previous
             if (i > 0) {
-                children[i]->previousSibling = byte_swap_int(childrenOffsets[i - 1]);
+                children[i]->previousSibling = ByteSwap(childrenOffsets[i - 1]);
                 AddPointer(childrenOffsets[i] + offsetof(RawObject, previousSibling));
             }
         }
 
         if (node->mNumChildren > 0) {
-            *(u32*)(mData + 0x20 + childPtrOffset) = byte_swap_int(childrenOffsets[0]);
+            *(u32*)(mData + 0x20 + childPtrOffset) = ByteSwap(childrenOffsets[0]);
             AddPointer(childPtrOffset);
         }
 
@@ -727,7 +727,7 @@ namespace SPMEditor {
 
     int GeometryExporter::AppendFloat(const float value) {
         int fileOffset = mFileSize;
-        *(float*)(mData + mFileSize + 0x20) = byte_swap_float(value);
+        *(float*)(mData + mFileSize + 0x20) = ByteSwap(value);
         mFileSize += 4;
         return fileOffset;
     }

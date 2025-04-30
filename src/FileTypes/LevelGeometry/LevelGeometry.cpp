@@ -1,10 +1,10 @@
 #include "FileTypes/LevelGeometry/LevelGeometry.h"
 #include "FileTypes/LevelGeometry/InternalMapFile.h"
 #include "Types/Types.h"
-#include "Utility/Logging.h"
-#include "IO/FileWriter.h"
+#include "core/Logging.h"
 #include "assimp/anim.h"
 #include "assimp/matrix4x4.h"
+#include "core/filesystem.h"
 #include "glm/ext/scalar_constants.hpp"
 
 #define FPNG_NO_SSE 1
@@ -59,7 +59,7 @@ namespace SPMEditor {
 
         // Load header
         FileHeader header = *(FileHeader*)data;
-        byte_swap_array_stride_4(&header, 4);
+        ByteSwap4(&header, 4);
 
         // Grab the actual data from the file
         sData = data + 0x20; // skip the file header
@@ -89,8 +89,8 @@ namespace SPMEditor {
 
         for (int i = 0; i < header.sectionCount; i++) {
             Section section;
-            section.fileOffset = byte_swap_int(*(int*)(sData + sectionTableOffset + i * 8));
-            int nameOffset = byte_swap_int(*(int*)(sData + sectionTableOffset + i * 8 + 4));
+            section.fileOffset = ByteSwap(*(int*)(sData + sectionTableOffset + i * 8));
+            int nameOffset = ByteSwap(*(int*)(sData + sectionTableOffset + i * 8 + 4));
 
             section.name = (char*)(sData + sectionTableOffset + nameOffset + 8 * header.sectionCount);
 
@@ -106,8 +106,8 @@ namespace SPMEditor {
     Section LevelGeometry::FindSection(const std::string& name, int sectionTableOffset, int sectionCount) {
         for (int i = 0; i < sectionCount; i++) {
             Section section;
-            section.fileOffset = byte_swap_int(*(int*)(sData + sectionTableOffset + i * 8));
-            int nameOffset = byte_swap_int(*(int*)(sData + sectionTableOffset + i * 8 + 4));
+            section.fileOffset = ByteSwap(*(int*)(sData + sectionTableOffset + i * 8));
+            int nameOffset = ByteSwap(*(int*)(sData + sectionTableOffset + i * 8 + 4));
 
             section.name = (char*)(sData + sectionTableOffset + nameOffset + 8 * sectionCount);
 
@@ -140,7 +140,8 @@ namespace SPMEditor {
                     for (size_t i = 0; i < textureNames.size(); i++) {
                         const auto texture = sCurrentScene->mTextures[i];
                         sCurrentScene->mTextures[i]->mFilename = aiString(textureNames[i].c_str());
-                        FileWriter::WriteFile("Images/" + textureNames[i], (u8*)texture->pcData, (int)texture->mWidth);
+                        std::string path = "Images/" + textureNames[i];
+                        filesystem_write_file(path.c_str(), (u8*)texture->pcData, (int)texture->mWidth);
                     }
                     break;
                 }
@@ -161,11 +162,11 @@ namespace SPMEditor {
 
     std::vector<std::string> LevelGeometry::ReadTextureNames(int offset) {
         int* textureTable = (int*)(sData + offset);
-        int imageCount = byte_swap_int(textureTable[0]);
+        int imageCount = ByteSwap(textureTable[0]);
 
         std::vector<std::string> names(imageCount);
         for (int i = 0; i < imageCount; i++) {
-            names[i] = (char*)sData + byte_swap_int(textureTable[i + 1]);
+            names[i] = (char*)sData + ByteSwap(textureTable[i + 1]);
         }
 
         return names;
@@ -178,11 +179,11 @@ namespace SPMEditor {
         // Doing it this way instead of just casting the pointer to an info header
         // because char* is 8 bytes long while the offsets in the header are only 4 bytes long
         InfoSection info;
-        info.version = (char*)(long long)byte_swap_int(headerPtr[0]);
-        info.objHeirarchyOffset = byte_swap_int(headerPtr[1]);
-        info.rootObjName = (char*)(long long)byte_swap_int(headerPtr[2]);
-        info.rootColliderName = (char*)(long long)byte_swap_int(headerPtr[3]);
-        info.timestamp = (char*)(long long)byte_swap_int(headerPtr[4]);
+        info.version = (char*)(long long)ByteSwap(headerPtr[0]);
+        info.objHeirarchyOffset = ByteSwap(headerPtr[1]);
+        info.rootObjName = (char*)(long long)ByteSwap(headerPtr[2]);
+        info.rootColliderName = (char*)(long long)ByteSwap(headerPtr[3]);
+        info.timestamp = (char*)(long long)ByteSwap(headerPtr[4]);
 
         // Add the data ptr to each pointer in the info header
         // because the offsets are relative to the start of the file (data)
@@ -240,8 +241,8 @@ namespace SPMEditor {
             // Fun story, these two lines killed a days worth of bug fixing (~10 hours)
             // I forgot to add the i * 8 (read each mesh / material pair) so it was just reading 2 of the same meshes
             // and this made it so a lot of the objects were just missing. Man I hate programming sometimes
-            int materialOffset = byte_swap_int(*(int*)(sData + objectOffset + i * 8+ sizeof(RawObject)));
-            int meshOffset = byte_swap_int(*(int*)(sData + objectOffset + i * 8 + sizeof(RawObject) + 4));
+            int materialOffset = ByteSwap(*(int*)(sData + objectOffset + i * 8+ sizeof(RawObject)));
+            int meshOffset = ByteSwap(*(int*)(sData + objectOffset + i * 8 + sizeof(RawObject) + 4));
 
 
             // Actually do the reading
@@ -285,7 +286,7 @@ namespace SPMEditor {
 
     aiMesh* LevelGeometry::ReadMesh(int offset) {
         MeshHeader header = *(MeshHeader*)(sData + offset);
-        byte_swap_array_stride_4(&header, 4);
+        ByteSwap4(&header, 4);
 
         Assert(header.constant == 0x1000001, "Mesh header constant is not constant. Expected 0x1000001, got 0x%x", header.constant);
 
@@ -348,23 +349,23 @@ namespace SPMEditor {
         // Vertex UV and position scale factor has to do with float dequantization (pqx_lx instruction)
         // This happens at 0x8006d74c in the binary
         VertexStrip header = *(VertexStrip*)(sData + offset);
-        header.vertexCount = byte_swap_u16(header.vertexCount);
+        header.vertexCount = ByteSwap(header.vertexCount);
 
         u16* vertexData = (u16*)(sData + offset + 3);
         for (uint i = 0; i < header.vertexCount; i++) {
             Vertex vertex;
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_POSITION) != 0)
             {
-                u16 vertexIndex = byte_swap_u16(*vertexData++);
+                u16 vertexIndex = ByteSwap(*vertexData++);
                 vec3<short> rawVertex = vcd.vertices[vertexIndex];
-                byte_swap_array_stride_2(&rawVertex, 3);
+                ByteSwap4(&rawVertex, 3);
 
                 int scaleFactor = vcd.vertexScale;
                 vertex.position = Vector3((float)rawVertex.x / scaleFactor, (float)rawVertex.y / scaleFactor, (float)rawVertex.z / scaleFactor);
             }
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_NORMAL) != 0)
             {
-                int index = byte_swap_u16(*vertexData++);
+                int index = ByteSwap(*vertexData++);
                 vertex.normal.x = (float)(*((u8*)(vcd.normals) + index * 3 + 0)) / 0x40;
                 vertex.normal.y = (float)(*((u8*)(vcd.normals) + index * 3 + 1)) / 0x40;
                 vertex.normal.z = (float)(*((u8*)(vcd.normals) + index * 3 + 2)) / 0x40;
@@ -372,7 +373,7 @@ namespace SPMEditor {
             }
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_COLOR) != 0)
             {
-                u16 colorIndex = byte_swap_u16(*vertexData);
+                u16 colorIndex = ByteSwap(*vertexData);
 
                 u8 r = *((u8*)(vcd.colors) + colorIndex * sizeof(Color) + 0);
                 u8 g = *((u8*)(vcd.colors) + colorIndex * sizeof(Color) + 1);
@@ -388,7 +389,7 @@ namespace SPMEditor {
                 vertexData++;
             }
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_UV) != 0) {
-                int uvIndex = byte_swap_u16(*vertexData++);
+                int uvIndex = ByteSwap(*vertexData++);
                 vec2<u16> rawUv = vcd.uvs[uvIndex];
                 ByteSwap2(&rawUv, 2);
 
@@ -424,7 +425,7 @@ namespace SPMEditor {
 
     VCDTable LevelGeometry::ReadVCDTable(int offset) {
         RawVCDTable _table = *(RawVCDTable*)(sData + offset);
-        byte_swap_array_stride_4(&_table, sizeof(RawVCDTable) / 4);
+        ByteSwap4(&_table, sizeof(RawVCDTable) / 4);
         VCDTable table;
         LogInfo("----- Reading VCD Table -----");
 
@@ -432,10 +433,10 @@ namespace SPMEditor {
         // I doubt it is 100% accurate
         // It looks like the VCDTable has a somewhat dynamic struct
         // where some sections have a count followed by a number of pointers
-        table.vertexCount = byte_swap_int(*(int*)(sData + _table.vertexOffset));
-        table.normalCount = byte_swap_int(*(int*)(sData + _table.normalOffset));
-        table.colorCount = byte_swap_int(*(int*)(sData + _table.colorOffset));
-        table.uvCount = byte_swap_int(*(int*)(sData + _table.uvOffset));
+        table.vertexCount = ByteSwap(*(int*)(sData + _table.vertexOffset));
+        table.normalCount = ByteSwap(*(int*)(sData + _table.normalOffset));
+        table.colorCount = ByteSwap(*(int*)(sData + _table.colorOffset));
+        table.uvCount = ByteSwap(*(int*)(sData + _table.uvOffset));
 
         table.vertexScale = 1 << _table.vertexScale;
         table.uvScale = 1 << _table.uvScale;
@@ -461,13 +462,13 @@ namespace SPMEditor {
     }
 
     void LevelGeometry::ReadFogTable(int tableOffset) {
-        u32 fogCount = byte_swap_u32(*(u32*)(sData + tableOffset));
+        u32 fogCount = ByteSwap(*(u32*)(sData + tableOffset));
         Assert(fogCount <= 1, "Unable to read fog table. Too many / few entries: %u", fogCount);
         if (fogCount <= 0)
             return;
 
         FogEntry fog = *(FogEntry*)(sData + tableOffset + 8);
-        byte_swap_array_stride_4(&fog, 2);
+        ByteSwap4(&fog, 2);
         s_CurrentLevel->fogSettings.emplace_back(fog);
 
         LogInfo("Fog near plane:        %f", fog.start); 
@@ -476,28 +477,28 @@ namespace SPMEditor {
     }
 
     void LevelGeometry::ReadAnimationTable(int tableOffset) {
-        uint animationCount = byte_swap_u32(*(uint*)(sData + tableOffset));
+        uint animationCount = ByteSwap(*(uint*)(sData + tableOffset));
         uint* headers = (uint*)(sData + tableOffset + 4);
 
         sCurrentScene->mNumAnimations = animationCount;
         sCurrentScene->mAnimations = new aiAnimation*[animationCount];
 
         for (uint i = 0; i < animationCount; i++) {
-            const AnimationHeader* header = (AnimationHeader*)(sData + byte_swap_u32(headers[i]));
+            const AnimationHeader* header = (AnimationHeader*)(sData + ByteSwap(headers[i]));
 
             sCurrentScene->mAnimations[i] = new aiAnimation();
             aiAnimation* animation = sCurrentScene->mAnimations[i];
-            animation->mName = (char*)sData + byte_swap_int((int)header->nameOffset);
-            animation->mDuration = byte_swap_float(header->frameCount);
+            animation->mName = (char*)sData + ByteSwap((int)header->nameOffset);
+            animation->mDuration = ByteSwap(header->frameCount);
             animation->mTicksPerSecond = 25;
 
-            LogTrace("Reading animation '%s' (0x%x) with %d frames.", animation->mName.C_Str(), byte_swap_u32(headers[i]), animation->mDuration);
+            LogTrace("Reading animation '%s' (0x%x) with %d frames.", animation->mName.C_Str(), ByteSwap(headers[i]), animation->mDuration);
             Assert(header->constant == 0, "Animation '%s' (Index: %d) header constant is not constant. Expected 0, got 0x%x", animation->mName.C_Str(), i, header->constant);
 
             if (header->transformAnimationOffset)
-                ReadTransformAnimation(byte_swap_int(header->transformAnimationOffset), animation);
+                ReadTransformAnimation(ByteSwap(header->transformAnimationOffset), animation);
             if (header->materialAnimationOffset)
-                ReadTextureAnimation(byte_swap_int(header->materialAnimationOffset));
+                ReadTextureAnimation(ByteSwap(header->materialAnimationOffset));
 
             for (int pad = 0; pad < 4; pad++) {
                 Assert(header->padding[pad] == 0, "Animation header padding has value 0x%x.", header->padding[pad]);
@@ -516,15 +517,15 @@ namespace SPMEditor {
     }
 
     void LevelGeometry::ReadTransformAnimation(int offset, aiAnimation* animation) {
-        uint channelCount = byte_swap_u32(*(u32*)(sData + offset));
+        uint channelCount = ByteSwap(*(u32*)(sData + offset));
         animation->mNumChannels = channelCount;
         animation->mChannels = new aiNodeAnim*[channelCount];
 
         LogTrace("Reading transform animation (0x%x)", offset);
         for (uint i = 0; i < channelCount; i++) {
-            int animPointer = byte_swap_int(*(int*)(sData + offset + 4 + i * 4));
+            int animPointer = ByteSwap(*(int*)(sData + offset + 4 + i * 4));
             TransformAnimation internalAnimation = *(TransformAnimation*)(sData + animPointer);
-            byte_swap_array_stride_4(&internalAnimation, sizeof(TransformAnimation) / 4);
+            ByteSwap4(&internalAnimation, sizeof(TransformAnimation) / 4);
 
             Assert(internalAnimation.keyframeCount > 0, "Animation '%s' has no keyframes", (char*)sData + internalAnimation.nameOffset);
 
@@ -559,12 +560,12 @@ namespace SPMEditor {
             LogTrace("\tPosition: (%f, %f, %f), Rotation: (%f, %f, %f), Scale: (%f, %f, %f)", nodePosition.x, nodePosition.y, nodePosition.z, nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeScale.x, nodeScale.y, nodeScale.z);
 
             TransformAnimation::Keyframe startingKey = keyframes[0];
-            byte_swap_array_stride_4(&startingKey, sizeof(TransformAnimation::Keyframe) / 4);
+            ByteSwap4(&startingKey, sizeof(TransformAnimation::Keyframe) / 4);
             aiVector3D startingPosition(startingKey.position.x.start, startingKey.position.y.start, startingKey.position.z.start);
 
             for (u32 key = 0; key < internalAnimation.keyframeCount; key++) {
                 TransformAnimation::Keyframe keyframe = keyframes[key];
-                byte_swap_array_stride_4(&keyframe, sizeof(TransformAnimation::Keyframe) / 4);
+                ByteSwap4(&keyframe, sizeof(TransformAnimation::Keyframe) / 4);
 
                 constexpr double PI = glm::pi<double>();
                 aiVector3D pos = aiVector3D(keyframe.position.x.start, keyframe.position.y.start, keyframe.position.z.start);// - aiVector3D(internalAnimation->basePosition.x, internalAnimation->basePosition.y, internalAnimation->basePosition.z);
@@ -595,23 +596,23 @@ namespace SPMEditor {
     }
 
     void LevelGeometry::ReadTextureAnimation(int offset) { 
-        uint objectCount = byte_swap_u32(*(u32*)(sData + offset));
+        uint objectCount = ByteSwap(*(u32*)(sData + offset));
 
         std::vector<MaterialAnimation> animations;
         for (uint i = 0; i < objectCount; i++) {
-            int animationOffset = byte_swap_u32(*(u32*)(sData + offset + 4 + 4 * i));
+            int animationOffset = ByteSwap(*(u32*)(sData + offset + 4 + 4 * i));
             InternalMaterialAnimation* textureAnimation = (InternalMaterialAnimation*)(sData + animationOffset);
             InternalMaterialAnimation::Keyframe* keyframes = (InternalMaterialAnimation::Keyframe*)(sData + animationOffset + sizeof(InternalMaterialAnimation));
 
             MaterialAnimation animation;
-            animation.animationName = (char*)sData + byte_swap_int(textureAnimation->materialNameOffset);
+            animation.animationName = (char*)sData + ByteSwap(textureAnimation->materialNameOffset);
 
             animation.unknown[0] = textureAnimation->unknown[0];
             animation.unknown[1] = textureAnimation->unknown[1];
             animation.unknown[2] = textureAnimation->unknown[2];
-            byte_swap_array_stride_4(animation.unknown, 3);
+            ByteSwap4(animation.unknown, 3);
 
-            int keyframeCount = byte_swap_int(textureAnimation->keyframeCount);
+            int keyframeCount = ByteSwap(textureAnimation->keyframeCount);
             animation.keyframes.reserve(keyframeCount);
 
             for (int frame = 0; frame < keyframeCount; frame++) {
@@ -620,7 +621,7 @@ namespace SPMEditor {
 
             // Fix endianness of output frames
             if (keyframeCount > 0)
-                byte_swap_array_stride_4(animation.keyframes.data(), sizeof(InternalMaterialAnimation::Keyframe) / 4);
+                ByteSwap4(animation.keyframes.data(), sizeof(InternalMaterialAnimation::Keyframe) / 4);
             animations.emplace_back(animation);
 
             LogInfo("Found Material Animation %s (0x%x)", animation.animationName, animationOffset);
@@ -632,23 +633,23 @@ namespace SPMEditor {
     }
 
     void LevelGeometry::ReadMaterialNameTable(int tableOffset, int textureCount) {
-        u32 materialCount = byte_swap_u32(*(u32*)(sData + tableOffset));
+        u32 materialCount = ByteSwap(*(u32*)(sData + tableOffset));
         LogInfo("----- Reading Material Name Table -----");
         LogInfo("Material Count: 0x%x", materialCount);
         MaterialNameEntry* entries = (MaterialNameEntry*)(sData + tableOffset + 4);
 
         if (materialCount > 0)
-            s_FirstMaterialAddress = byte_swap_int(entries[0].materialOffset);
+            s_FirstMaterialAddress = ByteSwap(entries[0].materialOffset);
 
         sCurrentScene->mNumMaterials = materialCount;
         sCurrentScene->mMaterials = new aiMaterial*[materialCount];
 
         for (u32 i = 0; i < materialCount; i++) {
             // Read entry and material
-            byte_swap_array_stride_4(&entries[i], 2);
+            ByteSwap4(&entries[i], 2);
             Material material = *(Material*)(sData + entries[i].materialOffset);
-            byte_swap_array_stride_4(&material, 1); // Yay for funky data type
-            byte_swap_array_stride_4(((char*)&material + 0xc), 0x42); // Yay for funky data type
+            ByteSwap4(&material, 1); // Yay for funky data type
+            ByteSwap4(((char*)&material + 0xc), 0x42); // Yay for funky data type
 
             // get the name
             aiString* name = new aiString((char*)(sData + entries[i].nameOffset));
@@ -667,11 +668,11 @@ namespace SPMEditor {
             if (material.textureInfoPtr != 0)
             {
                 MapTexture::Info textureInfo = *(MapTexture::Info*)(sData + material.textureInfoPtr);
-                byte_swap_array_stride_4(&textureInfo, 2); // Just the first 2 ints
+                ByteSwap4(&textureInfo, 2); // Just the first 2 ints
                 MapTexture mapTexture = *(MapTexture*)(sData + textureInfo.dataOffset);
-                mapTexture.nameOffset = byte_swap_u32(mapTexture.nameOffset);
-                mapTexture.width = byte_swap_u16(mapTexture.width);
-                mapTexture.height = byte_swap_u16(mapTexture.height);
+                mapTexture.nameOffset = ByteSwap(mapTexture.nameOffset);
+                mapTexture.width = ByteSwap(mapTexture.width);
+                mapTexture.height = ByteSwap(mapTexture.height);
 
                 aiString* textureName = new aiString((char*)(sData + mapTexture.nameOffset));
 

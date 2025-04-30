@@ -1,63 +1,81 @@
 #include "Commands/Display/VertexAttribute.h"
 
+namespace SPMEditor 
+{
+/*u32 display_vertex_attribute_to_size(VertexAttribute attribute) {*/
+/*            switch (type) {*/
+/*                case VertexAttribute::NONE:*/
+/*                    this->size = 0;*/
+/*                    break;*/
+/*                case POSITION:*/
+/*                    this->size = sizeof(Vector3);*/
+/*                    break;*/
+/*                case NORMAL:*/
+/*                    this->size = sizeof(Vector3);*/
+/*                    break;*/
+/*                case UV:*/
+/*                    this->size = sizeof(Vector2);*/
+/*                    break;*/
+/*                case UV2:*/
+/*                    this->size = sizeof(Vector2);*/
+/*                    break;*/
+/*                case UV3:*/
+/*                    this->size = sizeof(Vector2);*/
+/*                    break;*/
+/*                case UV4:*/
+/*                    this->size = sizeof(Vector2);*/
+/*                    break;*/
+/*                case COLOR:*/
+/*                    this->size = sizeof(aiColor4D);*/
+/*                    break;*/
+/*                case COLOR_2:*/
+/*                    this->size = sizeof(aiColor4D);*/
+/*                    break;*/
+/*                case COLOR_3:*/
+/*                    this->size = sizeof(aiColor4D);*/
+/*                    break;*/
+/*                case COLOR_4:*/
+/*                    this->size = sizeof(aiColor4D);*/
+/*                    break;*/
+/*}*/
+    VertexAttribute::VertexAttribute(Type type, uint offset, uint size) : type(type), offset(offset), size(size) {
 
-u32 display_vertex_attribute_get_size(display_vertex_attribute_type_t attribute) {
-
-    switch (attribute) {
-        default:
-            return 0;
-        case DISPLAY_VERTEX_ATTRIBUTE_POSITION:
-            return sizeof(vec3);
-        case DISPLAY_VERTEX_ATTRIBUTE_NORMAL:
-            return sizeof(vec3);
-        case DISPLAY_VERTEX_ATTRIBUTE_UV:
-            return sizeof(vec2);
-        case DISPLAY_VERTEX_ATTRIBUTE_UV2:
-            return sizeof(vec2);
-        case DISPLAY_VERTEX_ATTRIBUTE_UV3:
-            return sizeof(vec2);
-        case DISPLAY_VERTEX_ATTRIBUTE_UV4:
-            return sizeof(vec2);
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR:
-            return sizeof(vec4);
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR_2:
-            return sizeof(vec4);
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR_3:
-            return sizeof(vec4);
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR_4:
-            return sizeof(vec4);
+        if (size == 0)
+        {
+        }
     }
 
-    return 0;
-}
-
-u32 display_vertex_attribute_get_element_count(display_vertex_attribute_type_t attribute) {
-    switch (attribute) {
-        default:
-            return 0;
-        case DISPLAY_VERTEX_ATTRIBUTE_NONE:
-            return 0;
-        case DISPLAY_VERTEX_ATTRIBUTE_POSITION:
-            return 3;
-        case DISPLAY_VERTEX_ATTRIBUTE_NORMAL:
-            break;
-        case DISPLAY_VERTEX_ATTRIBUTE_UV:
-            return 2;
-        case DISPLAY_VERTEX_ATTRIBUTE_UV2:
-            return 2;
-        case DISPLAY_VERTEX_ATTRIBUTE_UV3:
-            return 2;
-        case DISPLAY_VERTEX_ATTRIBUTE_UV4:
-            return 2;
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR:
-            return 4;
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR_2:
-            return 4;
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR_3:
-            return 4;
-        case DISPLAY_VERTEX_ATTRIBUTE_COLOR_4:
-            return 4;
+    uint VertexAttribute::GetElementCount() const {
+        switch (type) {
+            case NONE:
+                return 0;
+            case POSITION:
+                return 3;
+            case NORMAL:
+                break;
+            case UV:
+                return 2;
+            case UV2:
+                return 2;
+            case UV3:
+                return 2;
+            case UV4:
+                return 2;
+            case COLOR:
+                return 4;
+            case COLOR_2:
+                return 4;
+            case COLOR_3:
+                return 4;
+            case COLOR_4:
+                return 4;
+        }
+        return 0;
     }
 
-    return 0;
+    Vertex::Vertex() { }
+    Vertex::Vertex(Vector3 position, Vector3 normal, Vector3 color, Vector2 uv) : 
+        position(position), normal(normal), color(color), uv(uv)
+    { }
 }
+

@@ -1,38 +1,52 @@
 #pragma once
 #include "FileTypes/U8File.h"
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-SPME_HEADER_TOP
-
+namespace SPMEditor
+{
     // Thanks Wiibrew (https://wiibrew.org/wiki/U8_archive)
-#define U8_ARCHIVE_FILE_MAGIC 0x55AA382D
+    struct U8Archive
+    {
+        public:
 
-typedef struct {
-    u32 file_magic; // 0x55AA382D "U.8-"
-    u32 rootOffset; // offset to root_node, always 0x20.
-    u32 size; // size of header from root_node to end of string table.
-    u32 dataOffset; // offset to data -- this is rootnode_offset + header_size, aligned to 0x40.
-    u8 padding[16];
-} u8_archive_header_t;
+            struct Header 
+            {
+                static const u32 U8Tag = 0x55AA382D;
+                u32 tag; // 0x55AA382D "U.8-"
+                u32 rootOffset; // offset to root_node, always 0x20.
+                u32 size; // size of header from root_node to end of string table.
+                u32 dataOffset; // offset to data -- this is rootnode_offset + header_size, aligned to 0x40.
+                u8 padding[16];
+            };
 
-typedef struct {
-    u16 type; //this is really a u8
-    u16 nameOffset; //really a "u24"
-    u32 dataOffset;
-    u32 size;
-} u8_archive_node_t;
+            struct Node 
+            {
+                u16 type; //this is really a u8
+                u16 nameOffset; //really a "u24"
+                u32 dataOffset;
+                u32 size;
+            };
 
-typedef struct {
-        u8_directory_t rootDirectory;
-} U8Archive;
 
-U8Archive u8_archive_read_from_file(const char* path, bool compressed);
-U8Archive u8_archive_read_from_bytes(const u8* data, u32 size, bool compressed);
-bool u8_archive_try_create_from_directory(const char* path, U8Archive* output);
+        public:
 
-bool u8_archive_file_exists(U8Archive* archive, const char* path);
-bool u8_archive_get_file(U8Archive* archive, const char* path, U8File** outFile);
+            bool Exists(const std::string& path);
+            bool Get(const std::string& path, U8File** outFile);
 
-void u8_archive_dump(U8Archive* archive, const char* path);
-u8* u8_archive_compile(U8Archive* archive, u32* out_archive_size);
+            void Dump(const std::string& path);
+            std::vector<u8> CompileU8();
 
-SPME_HEADER_BOTTOM
+            Directory rootDirectory;
+
+            static U8Archive ReadFromFile(const std::string& path, bool compressed);
+            static U8Archive ReadFromBytes(const u8* data, u32 size, bool compressed);
+            static bool TryCreateFromDirectory(const std::string& path, U8Archive& output);
+
+        private:
+            static Directory ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, u32& index, const std::string& path = "");
+            static U8File CreateNodeFromFile(const std::string& path);
+            static void CreateNodeFromDirectory(const std::string& path);
+    };
+}

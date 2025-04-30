@@ -1,5 +1,6 @@
-#include "Utility/Logging.h"
+#include "core/Logging.h"
 #include <cstdarg>
+#include <cstdio>
 #include <cstring>
 
 namespace SPMEditor {

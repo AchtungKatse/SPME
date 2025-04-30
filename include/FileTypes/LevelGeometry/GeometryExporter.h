@@ -80,7 +80,7 @@ namespace SPMEditor {
             template<typename T>
                 int _AppendInt(const T value) {
                     int fileOffset = mFileSize;
-                    *(T*)(mData + mFileSize + 0x20) = byte_swap_short(value);
+                    *(T*)(mData + mFileSize + 0x20) = ByteSwap(value);
                     mFileSize += sizeof(T);
                     return fileOffset;
                 }

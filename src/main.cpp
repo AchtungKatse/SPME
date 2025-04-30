@@ -1,9 +1,9 @@
 #include "Commands/CommandType.h"
+#include "Commands/TPLCommands.h"
 #include "Commands/U8Commands.h"
 #include "Commands/debug_commands.h"
-#include "Commands/map_commands.h"
-#include "Utility/Logging.h"
-#include "Commands/TPLCommands.h"
+#include "Commands/MapCommands.h"
+#include "core/Logging.h"
 #include <cstring>
 
 using namespace SPMEditor;
@@ -63,20 +63,20 @@ command_t u8_commands[] = {
 command_group_t command_groups[] = {
     {
         .name = "u8",
-        .command_count = sizeof(u8_commands) / sizeof(command_t),
         .commands = u8_commands,
+        .command_count = sizeof(u8_commands) / sizeof(command_t),
     }, {
         .name = "tpl",
-        .command_count = sizeof(tpl_commands) / sizeof(command_t),
         .commands = tpl_commands,
+        .command_count = sizeof(tpl_commands) / sizeof(command_t),
     }, {
         .name = "map",
-        .command_count = sizeof(map_commands) / sizeof(command_t),
         .commands = map_commands,
+        .command_count = sizeof(map_commands) / sizeof(command_t),
     }, {
         .name = "debug",
-        .command_count = sizeof(debug_commands) / sizeof(command_t),
         .commands = debug_commands,
+        .command_count = sizeof(debug_commands) / sizeof(command_t),
     }, 
 };
 
@@ -85,19 +85,26 @@ constexpr u32 command_group_count = sizeof(command_groups) / sizeof(command_grou
 char char_to_lower(char c);
 void string_to_lower(char* string);
 
-bool find_command_group(const char* name, command_group_t* out_group);
+bool find_command_group(const char* name, command_group_t** out_group);
 void display_available_commands();
 
 int main(int argc, char** argv) {
     // Initialization
     LoggingInitialize();
 
+    if (argc <= 1) {
+        LogError("Invalid number of arguments");
+        display_available_commands();
+        return -1;
+    }
+
     // Search for the target command group
     char* target_group = argv[1];
     string_to_lower(target_group);
     command_group_t* target_command_group = nullptr;
 
-    if (!find_command_group(target_group, target_command_group)) {
+    if (!find_command_group(target_group, &target_command_group)) {
+        display_available_commands();
         return -1;
     }
 
@@ -108,8 +115,10 @@ int main(int argc, char** argv) {
     bool found_command = false;
     const command_t* command = nullptr;
     for (u32 i = 0; i < target_command_group->command_count; i++) {
-        if (strcmp(target_command_group->commands[i].name, command_name)) {
+        if (strcmp(target_command_group->commands[i].name, command_name) == 0) {
             found_command = true;
+            command = &target_command_group->commands[i];
+            LogDebug("Found command '%s'", command->name);
             break;
         }
     }
@@ -121,16 +130,17 @@ int main(int argc, char** argv) {
     }
 
     // Run the command if parameters are correct
-    if (argc - 3 >= command->parameter_count) {
+    if ((u32)(argc - 3) < command->parameter_count) {
         LogError("Cannot run command '%s %s' because an invalid number of parameters were given. Expected %d parameters, got %d", 
                 target_command_group->name, 
                 command->name, 
                 command->parameter_count, 
                 argc - 3);
+        display_available_commands();
         return -1;
     }
 
-    command->run((const char**)argv + 2); // Cast argv to const
+    command->run(argc - 3, (const char**)argv + 3); // Cast argv to const
 
     // Shutdown
     LoggingShutdown();
@@ -138,12 +148,13 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-bool find_command_group(const char* target_group_name, command_group_t* out_group) {
+bool find_command_group(const char* target_group_name, command_group_t** out_group) {
     bool foundCommandGroup = false;
     for (u32 i = 0; i < command_group_count; i++) {
         command_group_t* group = &command_groups[i];
         if (strcmp(group->name, target_group_name) == 0) {
             foundCommandGroup = true;
+            *out_group = group;
             break;
         }
     }
@@ -168,3 +179,20 @@ void string_to_lower(char* string) {
         string[i] = char_to_lower(string[i]);
     }
 }
+
+void display_available_commands() {
+    LogInfo("Available commands are: ");
+    for (u32 i = 0; i < command_group_count; i++) {
+        LogInfo("\t%s", command_groups[i].name);
+
+        for (u32 c = 0; c < command_groups[i].command_count; c++) {
+            command_t* command = &command_groups[i].commands[c];
+            LogInfo("\t\t%s", command->name);
+            LogInfo("\t\tFormat:      %s", command->format);
+            LogInfo("\t\tDescription: %s", command->description);
+            LogInfo("");
+        }
+
+    }
+}
+

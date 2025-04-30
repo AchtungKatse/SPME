@@ -1,4 +1,6 @@
 #pragma once
+#include "assimp/color4.h"
+#include "assimp/vector3.h"
 #include <stdint.h>
 
 typedef unsigned char b8;
@@ -16,37 +18,67 @@ typedef int16_t s64;
 
 typedef unsigned int uint;
 
-typedef struct {
+struct Color 
+{
+    Color() = default;
+    Color(u8 r, u8 g, u8 b, u8 a)
+    {
+        this->r = r;
+        this->g = g;
+        this->b = b;
+        this->a = a;
+    }
+
     u8 r;
     u8 g;
     u8 b;
     u8 a;
-} Color;
 
-#define vec4(type, name) \
-typedef struct {                \
-    type x,y,z, w;              \
-} name;                         \
+    operator aiColor4D() {return aiColor4D(r, g, b, a); }
+};
 
-#define vec3(type, name) \
-typedef struct {                \
-    type x,y,z;                 \
-} name;                         \
+template<typename T>
+struct vec3
+{
+    vec3() = default;
+    vec3(T x, T y, T z)
+    {
+        this->x = x;
+        this->y = y;
+        this->z = z;
+    }
 
-#define vec2(type, name) \
-typedef struct {                \
-    type x,y;                   \
-} name;                         \
+    T x,y,z;
 
-vec4(float, vec4);
-vec3(int, vec3i);
-vec3(float, vec3);
-vec3(u16, vec3_u16);
-vec2(int, vec2i);
-vec2(float, vec2);
-vec2(u16, vec2_u16);
+    template<typename Other>
+        explicit operator vec3<Other>() {return vec3<Other>((Other)x, (Other)y, (Other)z); }
 
-inline short byte_swap_short(short val)
+    operator aiVector3t<float>() {return aiVector3t<float>((float)x, (float)y, (float)z); }
+};
+
+template<typename T>
+struct vec2
+{
+    vec2() = default;
+    vec2(T x, T y)
+    {
+        this->x = x;
+        this->y = y;
+    }
+
+    T x,y;
+
+    template<typename Other>
+        explicit operator vec2<Other>() {return vec2<Other>((Other)x, (Other)y); }
+    operator aiVector3t<float>() {return aiVector3t<float>((float)x, (float)y, 0); }
+};
+
+typedef vec3<int> Vector3i;
+typedef vec2<int> Vector2i;
+typedef vec3<float> Vector3;
+typedef vec2<float> Vector2;
+
+inline short ByteSwap(short val)
 {
     char* bytes = (char*)&val;
     char newData[2];
@@ -55,7 +87,7 @@ inline short byte_swap_short(short val)
     newData[1] = bytes[0];
     return *(short*)newData;
 }
-inline float byte_swap_float(float val)
+inline float ByteSwap(float val)
 {
     char* bytes = (char*)&val;
     char newData[4];
@@ -66,7 +98,7 @@ inline float byte_swap_float(float val)
     newData[0] = bytes[3];
     return *(float*)newData;
 }
-inline int byte_swap_int(int val) {
+inline int ByteSwap(int val) {
     char* bytes = (char*)&val;
     char newData[4];
 
@@ -76,18 +108,35 @@ inline int byte_swap_int(int val) {
     newData[3] = bytes[0];
     return *(int*)newData;
 }
+inline u8 ByteSwap(u8 val) { return val; }
+inline s8 ByteSwap(s8 val) { return val; }
+inline u16 ByteSwap(u16 val) { return ByteSwap((short)val); }
+inline u32 ByteSwap(u32 val) { return ByteSwap((int)val); }
 
-inline u16 byte_swap_u16(u16 val) { return byte_swap_short((short)val); }
-inline u32 byte_swap_u32(u32 val) { return byte_swap_int((int)val); }
-
-inline void byte_swap_array_stride_4(void* data, int elementCount) {
+inline void ByteSwap4(void* data, int elementCount)
+{
     for (int i = 0; i < elementCount; i++) {
-        ((int*)data)[i] = byte_swap_int(((int*)data)[i]);
+        ((int*)data)[i] = ByteSwap(((int*)data)[i]);
     }
 }
 
-inline void byte_swap_array_stride_2(void* data, int elementCount) {
+inline void ByteSwap2(void* data, int elementCount)
+{
     for (int i = 0; i < elementCount; i++) {
-        ((u16*)data)[i] = byte_swap_u16(((u16*)data)[i]);
+        ((u16*)data)[i] = ByteSwap(((u16*)data)[i]);
+    }
+}
+
+inline void ByteSwap(int* data, int elementCount)
+{
+    for (int i = 0; i < elementCount; i++) {
+        data[i] = ByteSwap(data[i]);
+    }
+}
+
+inline void ByteSwap(short* data, int elementCount)
+{
+    for (int i = 0; i < elementCount; i++) {
+        data[i] = ByteSwap(data[i]);
     }
 }

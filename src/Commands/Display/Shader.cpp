@@ -1,11 +1,9 @@
 #include "Commands/Display/Shader.h"
 
-// ===============================================
-// Private Functions
-// ===============================================
-
-    void display_shader_create_internal(const char* name, const char* source, display_shader_type_t type);
-
+namespace SPMEditor
+{
+    namespace 
+    {
         const char* DefaultVertex = 
             "#version 330 core\n"
             "layout (location = 0) in vec3 position;\n"
@@ -38,19 +36,20 @@
             "FragColor = vec4(1.0f, 0.0f, 1.0f, 1.0f) * ((1 + dot(normal, LightDir)) / 2);\n"
             "}";
 
-        inline const char* GetDefaultShader(const display_shader_type_t type)
+        inline const char* GetDefaultShader(const ShaderType type)
         {
             switch (type)
             {
                 default:
                     LogError("Undefined default shader type: %d", (int)type);
                     return nullptr;
-                case display_shader_type_t::DISPLAY_SHADER_TYPE_FRAGMENT:
+                case ShaderType::Fragment:
                     return DefaultFragment;
-                case display_shader_type_t::DISPLAY_SHADER_TYPE_VERTEX:
+                case ShaderType::Vertex:
                     return DefaultVertex;
             }
         }
+    }
 
     /*Shader::Shader(const char* shaderName, const char* filePath, ShaderType shaderType)*/
     /*{*/
@@ -70,14 +69,14 @@
     /*    free((void*)source);*/
     /*}*/
 
-    display_shader_t display_shader_t::display_shader_create_from_source(const char* shaderName, const char* shaderSource, display_shader_type_t type)
+    Shader Shader::CreateFromSource(const char* shaderName, const char* shaderSource, ShaderType type)
     {
-        display_shader_t shader;
-        shader.display_shader_create(shaderName, shaderSource, type);
+        Shader shader;
+        shader.Create(shaderName, shaderSource, type);
         return shader;
     }
 
-    void display_shader_t::display_shader_create(const char* name, const char* source, display_shader_type_t shaderType)
+    void Shader::Create(const char* name, const char* source, ShaderType shaderType)
     {
         if (source == nullptr)
             source = GetDefaultShader(shaderType);
@@ -85,23 +84,24 @@
 
         Assert(source != nullptr, "Shader source is null and failed to resolve default. Source: %s", source);
 
-        shader_index = glCreateShader(static_cast<unsigned int>(shaderType));
+        m_ShaderIndex = glCreateShader(static_cast<unsigned int>(shaderType));
 
-        glShaderSource(shader_index, 1, &source, NULL);
-        LogTrace("Created shader %s (Type: %u) with index %u", name, (uint)shaderType, shader_index);
+        glShaderSource(m_ShaderIndex, 1, &source, NULL);
+        LogTrace("Created shader %s (Type: %u) with index %u", name, (uint)shaderType, m_ShaderIndex);
 
-        glCompileShader(shader_index);
+        glCompileShader(m_ShaderIndex);
 
         // Log Error
         int success;
         int logSize;
-        glGetShaderiv(shader_index, GL_INFO_LOG_LENGTH, &logSize);
+        glGetShaderiv(m_ShaderIndex, GL_INFO_LOG_LENGTH, &logSize);
 
-        char infoLog[logSize];
-        glGetShaderiv(shader_index, GL_COMPILE_STATUS, &success);
+        const u32 MAX_LOG_SIZE = 0x4000;
+        char infoLog[MAX_LOG_SIZE];
+        glGetShaderiv(m_ShaderIndex, GL_COMPILE_STATUS, &success);
         if (!success)
         {
-            glGetShaderInfoLog(shader_index, logSize, NULL, infoLog);
+            glGetShaderInfoLog(m_ShaderIndex, logSize, NULL, infoLog);
             LogError("Failed to compile shader '%s': %s", name, (char*)infoLog, source);
 
             int sourceOffset = 0;
@@ -127,23 +127,23 @@
             switch (shaderType)
             {
                 default: return;
-                case display_shader_type_t::DISPLAY_SHADER_TYPE_FRAGMENT:
+                case ShaderType::Fragment:
                          source = DefaultFragment;
                          break;
-                case display_shader_type_t::DISPLAY_SHADER_TYPE_VERTEX:
+                case ShaderType::Vertex:
                          source = DefaultVertex;
                          break;
             }
 
-            glDeleteShader(shader_index);
+            glDeleteShader(m_ShaderIndex);
 
-            shader_index = glCreateShader(static_cast<unsigned int>(shaderType));
-            glShaderSource(shader_index, 1, &source, NULL);
-            glCompileShader(shader_index);
+            m_ShaderIndex = glCreateShader(static_cast<unsigned int>(shaderType));
+            glShaderSource(m_ShaderIndex, 1, &source, NULL);
+            glCompileShader(m_ShaderIndex);
 
             // If it fails again I'm going to stab someone
-            glGetShaderiv(shader_index, GL_INFO_LOG_LENGTH, &logSize);
-            glGetShaderiv(shader_index, GL_COMPILE_STATUS, &success);
+            glGetShaderiv(m_ShaderIndex, GL_INFO_LOG_LENGTH, &logSize);
+            glGetShaderiv(m_ShaderIndex, GL_COMPILE_STATUS, &success);
             if (!success)
             {
                 LogError("Failed to compile default shader");
@@ -152,10 +152,16 @@
         }
         else
         {
-            LogTrace("\tSuccessfully compiled shader '{0}' (Index: {1})", name, shader_index);
+            LogTrace("\tSuccessfully compiled shader '{0}' (Index: {1})", name, m_ShaderIndex);
         }
     }
 
-void display_shader_destroy(display_shader_t shader) {
-    glDeleteShader(shader.shader_index);
+    Shader::~Shader()
+    {
+        glDeleteShader(m_ShaderIndex);
+    }
+    /**/
+    /*FragmentShader::FragmentShader(const char* shaderName, const char* filePath) : Shader(shaderName, filePath, ShaderType::Fragment) { }*/
+    /*VertexShader::VertexShader(const char* shaderName, const char* filePath) : Shader(shaderName, filePath, ShaderType::Vertex) { }*/
 }
+
