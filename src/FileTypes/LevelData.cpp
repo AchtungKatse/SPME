@@ -56,8 +56,12 @@ namespace SPMEditor {
         // Grab texturesE
         std::string texturePath = "./dvd/map/" + mapName + "/texture.tpl";
         Assert(level.u8Files.Exists(texturePath), "Level does not have file at path '%s'", texturePath.c_str());
-        U8File& textureFile = level.u8Files[texturePath];
-        TPL tpl = TPL::LoadFromBytes(textureFile.data, textureFile.size);
+        U8File* textureFile = nullptr;
+        if (!level.u8Files.Get(texturePath, &textureFile)) {
+            LogError("Cannot load level data. Failed to get texture at path %s", texturePath.c_str());
+            return LevelData();
+        }
+        TPL tpl = TPL::LoadFromBytes(textureFile->data, textureFile->size);
 
         // Load main map data
         char mapPath[0x200] = {};
@@ -67,8 +71,12 @@ namespace SPMEditor {
             LogError("Level does not contain path '%s'", mapPath);
             return level;
         }
-        const U8File& map = level.u8Files[mapPath];
-        level.geometry = LevelGeometry::LoadFromBytes(map.data, map.size, tpl, &level);
+        U8File* mapFile = nullptr;
+        if (!level.u8Files.Get(mapPath, &mapFile)) {
+            LogError("Cannot load level data. Failed to get map.dat at path %s", mapPath);
+            return LevelData();
+        }
+        level.geometry = LevelGeometry::LoadFromBytes(mapFile->data, mapFile->size, tpl, &level);
 
         return level;
     }

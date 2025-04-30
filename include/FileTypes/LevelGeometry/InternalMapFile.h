@@ -12,14 +12,13 @@
 
 namespace SPMEditor::LevelInternal
 {
-    enum class VertexAttributes : u32
-    {
-        Position = 1,
-        Normal = 2,
-        Color = 4,
-        Unk_2 = 8,
-        UV = 0x10,
-        Unk_3 = 0x20,
+    enum VertexAttributes : u32 {
+        VERTEX_ATTRIBUTE_POSITION = 1,
+        VERTEX_ATTRIBUTE_NORMAL = 2,
+        VERTEX_ATTRIBUTE_COLOR = 4,
+        VERTEX_ATTRIBUTE_UNK_1 = 8,
+        VERTEX_ATTRIBUTE_UV = 0x10,
+        VERTEX_ATTRIBUTE_UNK_2 = 0x20,
     };
 
     PACK(struct VertexStrip
@@ -242,7 +241,7 @@ namespace SPMEditor::LevelInternal
         aiVector3D basePosition;
         aiVector3D baseRotation;
         float unkown_2[6];
-        int keyframeCount;
+        u32 keyframeCount;
     };
 
     class InternalMaterialAnimation { 

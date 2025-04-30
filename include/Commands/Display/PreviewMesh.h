@@ -17,7 +17,7 @@ namespace SPMEditor {
             static void FlattenVertexArray(void* output, const aiMesh* mesh,  const std::vector<VertexAttribute>& attributes, const int stride);
 
             const char* m_Name;
-            uint m_TextureIndex;
+            uint mTextureIndex;
 
             uint m_VAO;
             uint m_VBO;

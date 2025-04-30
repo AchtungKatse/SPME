@@ -28,7 +28,6 @@ namespace SPMEditor {
 
         for (size_t i = 0; i < tpl.images.size(); i++) {
             auto& image = tpl.images[i];
-            std::string& name = tpl.images[i].name;
             char finalName[0x200] = {};
             if (image.name == "") {
                 snprintf(finalName, sizeof(finalName), "Image_%lu", i);
@@ -37,7 +36,7 @@ namespace SPMEditor {
             }
             LogInfo("Writing image '%s/%s.png'", outputDirectory, finalName);
 
-            char path[0x200] = {};
+            char path[0x300] = {};
             snprintf(path, sizeof(path), "%s/%s.png", outputDirectory, finalName);
             stbi_write_png(path, (int)image.header.width, (int)image.header.height, 4, image.pixels.data(), image.header.width * 4);
         }

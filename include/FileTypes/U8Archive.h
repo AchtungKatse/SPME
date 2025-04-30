@@ -31,7 +31,7 @@ namespace SPMEditor
         public:
 
             bool Exists(const std::string& path);
-            U8File& operator[](const std::string& path);
+            bool Get(const std::string& path, U8File** outFile);
 
             void Dump(const std::string& path);
             std::vector<u8> CompileU8();

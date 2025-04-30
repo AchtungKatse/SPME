@@ -3,7 +3,7 @@
 #include "glad/glad.h"
 
 namespace SPMEditor {
-    PreviewMesh::PreviewMesh(const aiMesh* mesh) : m_VAO(-1), m_VBO(-1), m_EBO(-1), m_IndexCount(0), m_TextureIndex(-1), m_Name(0) {
+    PreviewMesh::PreviewMesh(const aiMesh* mesh) : m_Name(0), mTextureIndex(-1), m_VAO(-1), m_VBO(-1), m_EBO(-1), m_IndexCount(0) {
         if (mesh == nullptr)
             return;
 
@@ -26,12 +26,12 @@ namespace SPMEditor {
         // ===================
         int stride = 0;
         const std::vector<VertexAttribute>& attributes = GetVertexAttributes(mesh, stride);
-        char vertices[stride * mesh->mNumVertices];
+        char* vertexBuffer = new char[stride * mesh->mNumVertices];
 
-        for (size_t i = 0; i < sizeof(vertices) / sizeof(float); i++)
-            *(float*)(vertices + sizeof(float) * i) = 12345678.9f;
+        for (size_t i = 0; i < sizeof(vertexBuffer) / sizeof(float); i++)
+            *(float*)(vertexBuffer + sizeof(float) * i) = 12345678.9f;
 
-        FlattenVertexArray(vertices, mesh, attributes, stride);
+        FlattenVertexArray(vertexBuffer, mesh, attributes, stride);
 
         // ===================
         // Get index / vertex count
@@ -39,24 +39,28 @@ namespace SPMEditor {
         m_VertexCount = mesh->mNumVertices;
 
         m_IndexCount = 0;
-        for (int i = 0; i < mesh->mNumFaces; i++)
+        for (uint i = 0; i < mesh->mNumFaces; i++)
             m_IndexCount += mesh->mFaces[i].mNumIndices;
-        unsigned int indices[m_IndexCount];
+        uint* indexBuffer = new uint[m_IndexCount];
 
         // ===================================
         // Read indices into one single array
         // ====================================
-        for (int i = 0, offset = 0; i < mesh->mNumFaces; i++)
+        for (uint i = 0, offset = 0; i < mesh->mNumFaces; i++)
         {
-            memcpy(indices + offset, mesh->mFaces[i].mIndices, mesh->mFaces[i].mNumIndices * sizeof(unsigned int));
+            memcpy(indexBuffer + offset, mesh->mFaces[i].mIndices, mesh->mFaces[i].mNumIndices * sizeof(unsigned int));
             offset += mesh->mFaces[i].mNumIndices;
         }
 
         // ===================================
         // Read vertices into one single array
         // ====================================
-        glBufferData(GL_ARRAY_BUFFER, mesh->mNumVertices * stride, vertices, GL_STATIC_DRAW);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_IndexCount * sizeof(int), indices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, mesh->mNumVertices * stride, vertexBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_IndexCount * sizeof(int), indexBuffer, GL_STATIC_DRAW);
+
+        // Free buffers
+        delete[] indexBuffer;
+        delete[] vertexBuffer;
     }
 
     std::vector<VertexAttribute> PreviewMesh::GetVertexAttributes(const aiMesh* mesh, int& stride)
@@ -92,10 +96,10 @@ namespace SPMEditor {
     }
 
     void PreviewMesh::FlattenVertexArray(void* output, const aiMesh* mesh,  const std::vector<VertexAttribute>& attributes, const int stride) {
-        for (int i = 0; i < attributes.size(); i ++) {
+        for (size_t i = 0; i < attributes.size(); i ++) {
             const VertexAttribute& attr = attributes[i];
 
-            for (int vertexIndex = 0; vertexIndex < mesh->mNumVertices; vertexIndex++)
+            for (uint vertexIndex = 0; vertexIndex < mesh->mNumVertices; vertexIndex++)
             {
 
                 void* source = (char*)output + vertexIndex * stride + attr.offset;

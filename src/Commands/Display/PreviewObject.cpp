@@ -20,7 +20,7 @@ namespace SPMEditor {
         m_Children.reserve(node->mNumChildren);
 
         // Load all meshes
-        for (int i = 0; i < node->mNumMeshes; i++) {
+        for (u32 i = 0; i < node->mNumMeshes; i++) {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             PreviewMesh* previewMesh = new PreviewMesh(mesh);
 
@@ -29,14 +29,14 @@ namespace SPMEditor {
             if (mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), path) == AI_SUCCESS)
             {
                 std::pair<const aiTexture*, int> textureIndexPair = scene->GetEmbeddedTextureAndIndex(path.C_Str());
-                previewMesh->m_TextureIndex = textureIndexPair.second;
+                previewMesh->mTextureIndex = textureIndexPair.second;
             }
 
             m_Meshes.emplace_back(previewMesh);
         }
 
         // Then load children recursively
-        for (int i = 0; i < node->mNumChildren; i++) {
+        for (u32 i = 0; i < node->mNumChildren; i++) {
             m_Children.emplace_back(PreviewObject(scene, node->mChildren[i]));
         }
     }
@@ -57,13 +57,14 @@ namespace SPMEditor {
 
         // Set the matrix to render
         program.SetUniformMatrix4fv("model", matrix);
-        for (int i = 0; i < m_Meshes.size(); i++) {
-            if (m_Meshes[i]->m_TextureIndex != -1)
-                textures[m_Meshes[i]->m_TextureIndex].Bind(0);
+        for (size_t i = 0; i < m_Meshes.size(); i++) {
+            if (m_Meshes[i]->mTextureIndex != 0xFFFFFFFF) {
+                textures[m_Meshes[i]->mTextureIndex].Bind(0);
+            }
             m_Meshes[i]->Draw();
         }
 
-        for (int i = 0; i < m_Children.size(); i++) {
+        for (size_t i = 0; i < m_Children.size(); i++) {
             m_Children[i].Draw(program, matrix, textures);
         }
     }
@@ -73,7 +74,7 @@ namespace SPMEditor {
             if (strcmp(this->name, name) == 0)
                 return this;
 
-        for (int i = 0; i < this->m_Children.size(); i++) {
+        for (size_t i = 0; i < this->m_Children.size(); i++) {
             PreviewObject* node = m_Children[i].FindNode(name);
             if (node)
                 return node;

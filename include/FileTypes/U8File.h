@@ -17,7 +17,7 @@ namespace SPMEditor {
             std::vector<U8File> files;
             std::vector<Directory> subdirs;
 
-            U8File& operator[](const std::string& path);
+            bool Get(const std::string& path, U8File** outFile);
             bool Exists(const std::string& path);
             void AddFile(const std::string& path, U8File file);
             void Dump(const std::string& outputDir) const;

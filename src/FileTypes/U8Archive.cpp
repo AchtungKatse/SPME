@@ -11,24 +11,20 @@
 
 namespace SPMEditor {
 
-    bool U8Archive::Exists(const std::string& path)
-    {
+    bool U8Archive::Exists(const std::string& path) {
         return rootDirectory.Exists(path);
     }
 
-    U8File& U8Archive::operator[](const std::string& path)
-    {
-        return rootDirectory[path];
+    bool U8Archive::Get(const std::string& path, U8File** outFile) {
+        return rootDirectory.Get(path, outFile);
     }
 
-    U8Archive U8Archive::ReadFromFile(const std::string& path, bool compressed)
-    {
+    U8Archive U8Archive::ReadFromFile(const std::string& path, bool compressed) {
         const FileHandle file = FileReader::ReadFileBytes(path);
         return ReadFromBytes(file.data, file.size, compressed);
     }
 
-    Directory U8Archive::ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, u32& index, const std::string& path)
-    { 
+    Directory U8Archive::ReadVirtualDirectory(const u8* data, Node* nodes, int numNodes, u32& index, const std::string& path) { 
         int stringSectionStart = sizeof(Header) + numNodes * sizeof(Node);
 
         Node dirNode = nodes[index++];

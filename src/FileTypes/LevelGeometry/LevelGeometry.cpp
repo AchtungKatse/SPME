@@ -37,7 +37,7 @@ namespace SPMEditor {
         // Start by loading textures since we have that right here
         sCurrentScene->mNumTextures = tpl.images.size();
         sCurrentScene->mTextures = new aiTexture*[tpl.images.size()];
-        for (int i = 0; i < tpl.images.size(); i++) {
+        for (size_t i = 0; i < tpl.images.size(); i++) {
             TPL::Image image = tpl.images[i];
             aiTexture* texture = new aiTexture();
 
@@ -49,7 +49,7 @@ namespace SPMEditor {
             memcpy(texture->achFormatHint, "png\x0", 4);
 
             u8* texturePixels = (u8*)texture->pcData;
-            for (int p = 0; p < pngPixels.size(); p++)
+            for (size_t p = 0; p < pngPixels.size(); p++)
             {
                 texturePixels[p] = pngPixels[p];
             }
@@ -81,7 +81,7 @@ namespace SPMEditor {
         sCurrentScene->mRootNode = ReadInfo(infoSection.fileOffset, meshes);
         sCurrentScene->mNumMeshes = meshes.size();
         sCurrentScene->mMeshes = new aiMesh*[meshes.size()];
-        for (int i = 0; i < sCurrentScene->mNumMeshes; i++) {
+        for (uint i = 0; i < sCurrentScene->mNumMeshes; i++) {
             sCurrentScene->mMeshes[i] = meshes[i];
         }
 
@@ -137,7 +137,7 @@ namespace SPMEditor {
                     std::vector<std::string> textureNames = ReadTextureNames(section.fileOffset);
                     // I swear to god if this ever happens
                     Assert(sCurrentScene->mNumTextures >= textureNames.size(), "Trying to read more texture names than there are textures! \n\tTexture Name Count: 0x%x\n\tScene Texture Count: %u", textureNames.size(), sCurrentScene->mNumTextures);
-                    for (int i = 0; i < textureNames.size(); i++) {
+                    for (size_t i = 0; i < textureNames.size(); i++) {
                         const auto texture = sCurrentScene->mTextures[i];
                         sCurrentScene->mTextures[i]->mFilename = aiString(textureNames[i].c_str());
                         FileWriter::WriteFile("Images/" + textureNames[i], (u8*)texture->pcData, (int)texture->mWidth);
@@ -313,23 +313,24 @@ namespace SPMEditor {
 
         mesh->mNormals = new aiVector3t<float>[vertices.size()];
 
-        if (((u32)header.vertexAttributes & (u32)VertexAttributes::Color) != 1) 
+        if ((header.vertexAttributes & VERTEX_ATTRIBUTE_COLOR) == 0) 
             mesh->mColors[0] = new aiColor4D[vertices.size()];
 
-        for (int i = 0; i < vertices.size(); i++) {
+        for (size_t i = 0; i < vertices.size(); i++) {
             mesh->mVertices[i] = vertices[i].position;
             mesh->mNormals[i] = vertices[i].normal;
             mesh->mNormals[i] = -mesh->mNormals[i].Normalize();
             mesh->mTextureCoords[0][i] = aiVector3D(vertices[i].uv.x, vertices[i].uv.y, 0);
 
-            if (((u32)header.vertexAttributes & (u32)VertexAttributes::Color) != 1) 
+            if ((header.vertexAttributes & VERTEX_ATTRIBUTE_COLOR) == 0) {
                 mesh->mColors[0][i] = aiColor4D((float)vertices[i].color.r / 255, (float)vertices[i].color.g / 255, (float)vertices[i].color.b / 255, (float)vertices[i].color.a / 255);
+            }
         }
 
         mesh->mNumFaces = indices.size() / 3;
         mesh->mFaces = new aiFace[ mesh->mNumFaces ];
 
-        for (int i = 0; i < mesh->mNumFaces; i++) {
+        for (uint i = 0; i < mesh->mNumFaces; i++) {
             aiFace& face = mesh->mFaces[i];
 
             face.mNumIndices = 3;
@@ -350,9 +351,9 @@ namespace SPMEditor {
         header.vertexCount = ByteSwap(header.vertexCount);
 
         u16* vertexData = (u16*)(sData + offset + 3);
-        for (int i = 0; i < header.vertexCount; i++) {
+        for (uint i = 0; i < header.vertexCount; i++) {
             Vertex vertex;
-            if (((u32)attributes & (u32)VertexAttributes::Position) != 0)
+            if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_POSITION) != 0)
             {
                 u16 vertexIndex = ByteSwap(*vertexData++);
                 vec3<short> rawVertex = vcd.vertices[vertexIndex];
@@ -361,7 +362,7 @@ namespace SPMEditor {
                 int scaleFactor = vcd.vertexScale;
                 vertex.position = Vector3((float)rawVertex.x / scaleFactor, (float)rawVertex.y / scaleFactor, (float)rawVertex.z / scaleFactor);
             }
-            if (((u32)attributes & (u32)VertexAttributes::Normal) != 0)
+            if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_NORMAL) != 0)
             {
                 int index = ByteSwap(*vertexData++);
                 vertex.normal.x = (float)(*((u8*)(vcd.normals) + index * 3 + 0)) / 0x40;
@@ -369,7 +370,7 @@ namespace SPMEditor {
                 vertex.normal.z = (float)(*((u8*)(vcd.normals) + index * 3 + 2)) / 0x40;
                 vertex.normal.y = 5;
             }
-            if (((u32)attributes & (u32)VertexAttributes::Color) != 0)
+            if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_COLOR) != 0)
             {
                 u16 colorIndex = ByteSwap(*vertexData);
 
@@ -383,10 +384,10 @@ namespace SPMEditor {
                 vertex.color = rawColor;
                 vertexData++;
             }
-            if (((u32)attributes & (u32)VertexAttributes::Unk_2) != 0) {
+            if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_UNK_1) != 0) {
                 vertexData++;
             }
-            if (((u32)attributes & (u32)VertexAttributes::UV) != 0) {
+            if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_UV) != 0) {
                 int uvIndex = ByteSwap(*vertexData++);
                 vec2<u16> rawUv = vcd.uvs[uvIndex];
                 ByteSwap2(&rawUv, 2);
@@ -395,7 +396,7 @@ namespace SPMEditor {
                 Vector2 uv = Vector2((float)(short)rawUv.x / uvScale, 1.0f - (float)(short)rawUv.y / uvScale);
                 vertex.uv = uv;
             }
-            if (((u32)attributes & (u32)VertexAttributes::Unk_3) != 0) {
+            if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_UNK_2) != 0) {
                 vertexData++;
             }
 
@@ -404,9 +405,6 @@ namespace SPMEditor {
                 int a = indexOffset + 0;
                 int b = indexOffset + 1;
                 int c = indexOffset + 2;
-                auto va = vertices[a].position;
-                auto vb = vertices[b].position;
-                auto vc = vertex.position;
                 if (i % 2 != 0) {
                     // Front
                     indices.emplace_back(c);
@@ -484,7 +482,7 @@ namespace SPMEditor {
         sCurrentScene->mNumAnimations = animationCount;
         sCurrentScene->mAnimations = new aiAnimation*[animationCount];
 
-        for (int i = 0; i < animationCount; i++) {
+        for (uint i = 0; i < animationCount; i++) {
             const AnimationHeader* header = (AnimationHeader*)(sData + ByteSwap(headers[i]));
 
             sCurrentScene->mAnimations[i] = new aiAnimation();
@@ -523,7 +521,7 @@ namespace SPMEditor {
         animation->mChannels = new aiNodeAnim*[channelCount];
 
         LogTrace("Reading transform animation (0x%x)", offset);
-        for (int i = 0; i < channelCount; i++) {
+        for (uint i = 0; i < channelCount; i++) {
             int animPointer = ByteSwap(*(int*)(sData + offset + 4 + i * 4));
             TransformAnimation internalAnimation = *(TransformAnimation*)(sData + animPointer);
             ByteSwap4(&internalAnimation, sizeof(TransformAnimation) / 4);
@@ -564,7 +562,7 @@ namespace SPMEditor {
             ByteSwap4(&startingKey, sizeof(TransformAnimation::Keyframe) / 4);
             aiVector3D startingPosition(startingKey.position.x.start, startingKey.position.y.start, startingKey.position.z.start);
 
-            for (int key = 0; key < internalAnimation.keyframeCount; key++) {
+            for (u32 key = 0; key < internalAnimation.keyframeCount; key++) {
                 TransformAnimation::Keyframe keyframe = keyframes[key];
                 ByteSwap4(&keyframe, sizeof(TransformAnimation::Keyframe) / 4);
 
@@ -600,7 +598,7 @@ namespace SPMEditor {
         uint objectCount = ByteSwap(*(u32*)(sData + offset));
 
         std::vector<MaterialAnimation> animations;
-        for (int i = 0; i < objectCount; i++) {
+        for (uint i = 0; i < objectCount; i++) {
             int animationOffset = ByteSwap(*(u32*)(sData + offset + 4 + 4 * i));
             InternalMaterialAnimation* textureAnimation = (InternalMaterialAnimation*)(sData + animationOffset);
             InternalMaterialAnimation::Keyframe* keyframes = (InternalMaterialAnimation::Keyframe*)(sData + animationOffset + sizeof(InternalMaterialAnimation));
@@ -645,7 +643,7 @@ namespace SPMEditor {
         sCurrentScene->mNumMaterials = materialCount;
         sCurrentScene->mMaterials = new aiMaterial*[materialCount];
 
-        for (int i = 0; i < materialCount; i++) {
+        for (u32 i = 0; i < materialCount; i++) {
             // Read entry and material
             ByteSwap4(&entries[i], 2);
             Material material = *(Material*)(sData + entries[i].materialOffset);

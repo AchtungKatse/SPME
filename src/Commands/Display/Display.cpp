@@ -50,7 +50,7 @@ namespace SPMEditor {
         PreviewTexture* textures = new PreviewTexture[level.geometry->mNumTextures];
         stbi_set_flip_vertically_on_load(true);  
 
-        for (int i = 0; i < level.geometry->mNumTextures; i++) {
+        for (u32 i = 0; i < level.geometry->mNumTextures; i++) {
             textures[i] = PreviewTexture();
 
             const aiTexture* tex = level.geometry->mTextures[i];
@@ -88,14 +88,14 @@ namespace SPMEditor {
             glm::mat4 project = glm::perspective(90.0f, (float)s_ScreenWidth / s_ScreenHeight, .1f, 1000.0f);
 
             // Animation
-            for (int i = 0; i < level.geometry->mNumAnimations; i++) {
+            for (u32 i = 0; i < level.geometry->mNumAnimations; i++) {
                 const auto animation = level.geometry->mAnimations[i];
-                for (int c = 0; c < animation->mNumChannels; c++) {
+                for (u32 c = 0; c < animation->mNumChannels; c++) {
                     const auto channel = animation->mChannels[c];
                     float targetTime = glm::mod(glfwGetTime() * 60, animation->mDuration);
 
                     glm::vec3 pos, rot, scale;
-                    for (int k = 0; k < channel->mNumPositionKeys; k++)
+                    for (u32 k = 0; k < channel->mNumPositionKeys; k++)
                         if (targetTime > channel->mPositionKeys[k].mTime)
                         {
                             const auto& key = channel->mPositionKeys[k];
@@ -104,7 +104,7 @@ namespace SPMEditor {
                             pos = *(glm::vec3*)&position;
                         }
 
-                    for (int k = 0; k < channel->mNumRotationKeys; k++)
+                    for (u32 k = 0; k < channel->mNumRotationKeys; k++)
                     {
                         const auto& key = channel->mRotationKeys[k];
                         const auto& nextKey = channel->mRotationKeys[k + 1];
@@ -118,7 +118,7 @@ namespace SPMEditor {
                             rot.z = euler.x;
                         }
                     }
-                    for (int k = 0; k < channel->mNumScalingKeys; k++)
+                    for (u32 k = 0; k < channel->mNumScalingKeys; k++)
                         if (targetTime > channel->mScalingKeys[k].mTime)
                         {
                             const auto& key = channel->mScalingKeys[k];

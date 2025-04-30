@@ -182,7 +182,7 @@ namespace SPMEditor {
 
         // Write information
         for (size_t i = 0; i < mScene->mNumTextures; i++) {
-            int address = AppendPointer(0x14 + i * sizeof(MapTexture));
+            AppendPointer(0x14 + i * sizeof(MapTexture));
             AppendInt32(0); // padding
             // TODO: The following u8's are wrap mode,
             // This defaults them to repeat but should be user configurable
@@ -200,7 +200,8 @@ namespace SPMEditor {
             nameBufferSize += 1 + strlen(mSections[i].name);
         }
 
-        char nameBuffer[nameBufferSize];
+        char nameBuffer[0x400];
+        Assert((u64)nameBufferSize < sizeof(nameBuffer), "GeometryExporter cannot write section table, section name table size is greater than allocated name buffer size (%d >= %d)", nameBufferSize, sizeof(nameBuffer));
 
         LogInfo("Writing name buffer of size: 0x%x", nameBufferSize);
 
@@ -330,7 +331,7 @@ namespace SPMEditor {
             u8 useVertexColors = 1;
             u8 unk_1 = 1;
             // TODO: Transparency will be disabled until configuration is implemented because it results in non-transparent objects being culled.
-            u8 useTransparency = 1;
+            u8 useTransparency = 0;
             u8 useTexture = material->GetTextureCount(aiTextureType_DIFFUSE) > 0;
             /*useTexture = false;*/
             AppendUInt8(useVertexColors);
@@ -389,17 +390,17 @@ namespace SPMEditor {
         LogInfo("Writing mesh '%s'", mesh->mName.C_Str());
         // Get the vertex attribues
         int vertexSize = 2;
-        VertexAttributes attr = VertexAttributes::Position;
+        VertexAttributes attr = VertexAttributes::VERTEX_ATTRIBUTE_POSITION;
         if (mesh->HasNormals()) {
-            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::Normal);
+            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::VERTEX_ATTRIBUTE_NORMAL);
             vertexSize += 2;
         }
         if (mesh->HasVertexColors(0)) {
-            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::Color);
+            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::VERTEX_ATTRIBUTE_COLOR);
             vertexSize += 2;
         }
         if (mesh->HasTextureCoords(0)) {
-            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::UV); 
+            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::VERTEX_ATTRIBUTE_UV); 
             vertexSize += 2;
         }
 
@@ -491,7 +492,7 @@ namespace SPMEditor {
         else AppendInt32(0);
 
         int childPtrOffset = AppendInt32(0); // Temporary child offset
-        int nextSiblingOffset = AppendInt32(0);
+        AppendInt32(0); // Next sibling offset
 
         if (previousSibling)
             previousSibling = AppendPointer(previousSibling);
@@ -510,7 +511,7 @@ namespace SPMEditor {
 
         AppendInt32(0);
         if (parentOffset == 0) { // Is root
-            int subdataOffset = AppendInt32(0); // subdataptr
+            AppendInt32(0); // subdataptr
         } else {
             int subdataOffset = AppendPointer(0); // subdataptr
             mObjectSubdatas.emplace_back(ObjectSubData{RawObject::SubData(), subdataOffset});
@@ -530,14 +531,21 @@ namespace SPMEditor {
         for (size_t i = 0; i < node->mNumMeshes; i++) {
             const aiMesh* mesh = mScene->mMeshes[node->mMeshes[i]];
             LogInfo("Mesh has material index %u ('%s')", mesh->mMaterialIndex, mScene->mMaterials[mesh->mMaterialIndex]->GetName().C_Str());
-            int materialOffset = AppendPointer(mMaterialTable[mesh->mMaterialIndex].materialOffset);
-            int meshOffset = AppendPointer(mMeshTable[node->mMeshes[i]]);
+            AppendPointer(mMaterialTable[mesh->mMaterialIndex].materialOffset);
+            AppendPointer(mMeshTable[node->mMeshes[i]]);
         }
 
         // Write the children
         // TODO: remove variable length array
-        RawObject* children[node->mNumChildren];
-        int childrenOffsets[node->mNumChildren];
+        constexpr uint NODE_MAX_CHILD_COUNT = 0x1000;
+        Assert(node->mNumChildren < NODE_MAX_CHILD_COUNT, 
+                "Geometry Exporter failed to write object '%s', too many children (%d). Max number of children is %d. How did this even happen?", 
+                node->mName.C_Str(), 
+                node->mNumChildren, 
+                NODE_MAX_CHILD_COUNT);
+
+        RawObject* children[NODE_MAX_CHILD_COUNT];
+        int childrenOffsets[NODE_MAX_CHILD_COUNT];
 
         u32 previousChild = 0;
         for (size_t i = 0; i < node->mNumChildren; i++) {
