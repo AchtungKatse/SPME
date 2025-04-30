@@ -49,7 +49,8 @@ namespace SPMEditor
             /*bool m_IsResident;*/
             /*GLuint64 m_TextureHandle;*/
             GLuint m_TextureID;
-            uint m_Width, m_Height;
+            uint m_Width;
+            uint m_Height;
             void* m_Pixels;
     };
 }

@@ -40,7 +40,7 @@ namespace SPMEditor {
 
 
             static const u8* sData;
-            static aiScene* s_CurrentScene;
+            static aiScene* sCurrentScene;
             static int s_FirstMaterialAddress; // Required to calculate the material index for each mesh
             static VCDTable s_VCDTable;
             static LevelData* s_CurrentLevel;

@@ -45,7 +45,7 @@ namespace SPMEditor {
     }
 
     TPL TPL::LoadFromBytes(const u8* data, u64 size) {
-        Assert(size >= sizeof(Header), "Cannot read TPL from data size of {}", size);
+        Assert(size >= sizeof(Header), "Cannot read TPL from data size of %l", size);
 
         // Grab header
         Header header = ((Header*)data)->SwapBytes();
@@ -380,7 +380,7 @@ namespace SPMEditor {
         for (size_t i = 0; i < createInfo.mImageCreateInfoCount; i++) {
             TPLImageCreateInfo& info = createInfo.mImageCreateInfos[i];
             // TODO: Implement more image formats
-            Assert(info.mFormat == TPLImageFormat::RGBA32, "CreateTPL cannot create image, unsupported image format {}. The only supported tpl type is RGBA32.", (int)info.mFormat);
+            Assert(info.mFormat == TPLImageFormat::RGBA32, "CreateTPL cannot create image, unsupported image format %d. The only supported tpl type is RGBA32.", (int)info.mFormat);
 
             Image image;
             ImageHeader header = {
@@ -414,7 +414,7 @@ namespace SPMEditor {
                 int height;
                 int width;
                 u8* decompressedPixels = stbi_load_from_memory(pixelData, info.mTexture->mWidth, &width, &height, &channels, 4);
-                Assert(pixelData, "Failed to load image {}", i);
+                Assert(pixelData, "Failed to load image %d", i);
 
                 images[i].header.width = width;
                 images[i].header.height = height;
@@ -422,7 +422,6 @@ namespace SPMEditor {
 
                 // Copy pixel data into image data
                 images[i].pixels.resize(width * height);
-                LogTrace("TPL::Create() image {} is compressed with {} channels. Pixels size: {} ({}x{})", i, channels, images[i].pixels.size(), width, height);
                 u8* imagePixelData = (u8*)images[i].pixels.data();
                 if (channels == 4) {
                     memcpy(imagePixelData, decompressedPixels, height * width * 4);
@@ -438,12 +437,11 @@ namespace SPMEditor {
                 stbi_image_free(decompressedPixels);
             } else {
                 // Copy pixel data into image data
-                LogTrace("TPL::Create() image {} is uncompressed with format {}. Pixels size: {}", i, info.mTexture->achFormatHint, images[i].pixels.size());
                 images[i].pixels.resize(pixelDataSize / sizeof(Color));
                 memcpy(images[i].pixels.data(), pixelData, pixelDataSize);
             }
 
-            Assert(images[i].header.height > 0 && images[i].header.width > 0, "Trying to read aiTexture and got invalid size. Height: {}, Width: {}", images[i].header.height, images[i].header.width);
+            Assert(images[i].header.height > 0 && images[i].header.width > 0, "Trying to read aiTexture and got invalid size. Height: %d, Width: %d", images[i].header.height, images[i].header.width);
 
         }
 
@@ -499,7 +497,7 @@ namespace SPMEditor {
                 .padding = baseHeader.padding,
             };
 
-            Assert(header.height > 0 && header.width > 0, "Trying to write tpl texture {} and got invalid size. Height: {}, Width: {}", i, header.height, header.width);
+            Assert(header.height > 0 && header.width > 0, "Trying to write tpl texture %d and got invalid size. Height: %u, Width: %u", i, header.height, header.width);
 
             header.imageDataAddress = ByteSwap(imageDataOffset);
 

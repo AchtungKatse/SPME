@@ -23,7 +23,7 @@ namespace SPMEditor {
         const std::string& input = argv[0];
         const std::string& output = argv[1];
 
-        Assert(std::filesystem::exists(input), "File '{}' Does not exist.", input);
+        Assert(std::filesystem::exists(input), "File '%s' Does not exist.", input.c_str());
 
         const FileHandle& compressed = FileReader::ReadFileBytes(input);
         const std::vector<u8> decompressed = LZSS::DecompressBytes(compressed.data, compressed.size);
@@ -34,7 +34,7 @@ namespace SPMEditor {
         const std::string& input = argv[0];
         const std::string& output = argv[1];
 
-        Assert(std::filesystem::exists(input), "File '{}' Does not exist.", input);
+        Assert(std::filesystem::exists(input), "File '%s' Does not exist.", input.c_str());
 
         FileHandle file = FileReader::ReadFileBytes(input);
         const std::vector<u8> compressed = LZSS::CompressLzss10(file.data, file.size);

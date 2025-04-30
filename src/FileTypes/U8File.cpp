@@ -1,6 +1,7 @@
 #pragma once
 #include "FileTypes/U8File.h"
 #include "IO/FileWriter.h"
+#include <cstdio>
 
 namespace SPMEditor {
     Directory::Directory() : name(""), files({}), subdirs({}) { }
@@ -28,7 +29,7 @@ namespace SPMEditor {
             }
         }
 
-        Assert(false, "Failed to find file at path '{}'", path);
+        Assert(false, "Failed to find file at path '%s'", path.c_str());
         U8File file;
         return file;
     }
@@ -56,7 +57,7 @@ namespace SPMEditor {
             }
         }
 
-        LogError("Failed to find file at path '{}'", path);
+        LogError("Failed to find file at path '%s'", path.c_str());
         return false;
     }
 
@@ -90,13 +91,17 @@ namespace SPMEditor {
     }
 
     void Directory::Dump(const std::string& outputDir) const {
-        LogInfo("Dumping '{}' in '{}'", name, outputDir);
-        const std::string path = fmt::format("{}/{}", outputDir, name);
+        LogInfo("Dumping '%s' in '%s'", name.c_str(), outputDir.c_str());
+        char path[0x400] = {};
+        // NOTE: This function uses snprintf which is technically insecure, but should be fine in this use case
+        snprintf(path, sizeof(path), "%s/%s", outputDir.c_str(), name.c_str());
         std::filesystem::create_directories(path);
 
         for (const U8File& file : files) {
-            LogInfo("\tDumping '{}' in '{}'", file.name, path);
-            FileWriter::WriteFile(fmt::format("{}/{}", path, file.name), file.data, file.size);
+            LogInfo("\tDumping '%s' in '%s'", file.name.c_str(), path);
+            char filePath[0x400] = {};
+            snprintf(filePath, sizeof(filePath), "%s/%s", path, file.name.c_str());
+            FileWriter::WriteFile(filePath, file.data, file.size);
         }
 
         for (const Directory& subdir : subdirs) {

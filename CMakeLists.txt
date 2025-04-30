@@ -16,10 +16,11 @@ SET(BUILD_SHARED_LIBS OFF)
 SET(ASSIMP_BUILD_TESTS OFF)
 SET(ASSIMP_COVERALLS OFF)
 SET(ASSIMP_INSTALL OFF )
-# SET(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
-# SET(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
-# SET(ASSIMP_BUILD_FBX_IMPORTER ON)
-# SET(ASSIMP_BUILD_FBX_EXPORTER ON)
+SET(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF)
+SET(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+SET(ASSIMP_BUILD_FBX_IMPORTER ON)
+SET(ASSIMP_BUILD_GLTF_IMPORTER ON)
+SET(ASSIMP_BUILD_GLTF_EXPORTER ON)
 
 # Add source files
 file(GLOB_RECURSE SOURCE_FILES 
@@ -27,14 +28,12 @@ file(GLOB_RECURSE SOURCE_FILES
     ${CMAKE_SOURCE_DIR}/src/Compressors/*.c*
     ${CMAKE_SOURCE_DIR}/src/FileTypes/*.c*
     ${CMAKE_SOURCE_DIR}/src/IO/*.c*
+    ${CMAKE_SOURCE_DIR}/src/Utility/*.c*
     ${CMAKE_SOURCE_DIR}/src/main.cpp
     ${CMAKE_SOURCE_DIR}/src/StbImpl.cpp
 )
 
-# add_subdirectory(dependencies/spdlog)
 add_subdirectory(dependencies/assimp)
-add_library(spdlog SHARED IMPORTED)
-
 
 set(INCLUDE_LIBRARIES assimp)
 if (NOT ${NO_BUILD_DISPLAY})
@@ -55,7 +54,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/dependencies/glfw/include"
     "${CMAKE_SOURCE_DIR}/dependencies/glad/include"
     "${CMAKE_SOURCE_DIR}/dependencies/assimp/include"
-    "${CMAKE_SOURCE_DIR}/dependencies/spdlog/include"
     "${CMAKE_SOURCE_DIR}/dependencies/stb"
     "${CMAKE_SOURCE_DIR}/dependencies/glm"
     "${CMAKE_SOURCE_DIR}/dependencies/fpng/src" # please separate your source and include folders
@@ -97,7 +95,6 @@ if (${BUILD_TESTS})
         "${CMAKE_SOURCE_DIR}/dependencies/glfw/include"
         "${CMAKE_SOURCE_DIR}/dependencies/glad/include"
         "${CMAKE_SOURCE_DIR}/dependencies/assimp/include"
-        "${CMAKE_SOURCE_DIR}/dependencies/spdlog/include"
         "${CMAKE_SOURCE_DIR}/dependencies/stb"
         "${CMAKE_SOURCE_DIR}/dependencies/glm"
         "${CMAKE_SOURCE_DIR}/dependencies/fpng/src" # please separate your source and include folders

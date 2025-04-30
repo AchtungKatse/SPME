@@ -20,7 +20,7 @@
 namespace SPMEditor {
 
     const u8* LevelGeometry::sData;
-    aiScene* LevelGeometry::s_CurrentScene;
+    aiScene* LevelGeometry::sCurrentScene;
     int LevelGeometry::s_FirstMaterialAddress; // Required to calculate the material index for each mesh
     LevelData* LevelGeometry::s_CurrentLevel;
     VCDTable LevelGeometry::s_VCDTable; 
@@ -31,12 +31,12 @@ namespace SPMEditor {
     }
 
     aiScene* LevelGeometry::LoadFromBytes(const u8* data, u64 size, TPL tpl, LevelData* level) {
-        s_CurrentScene = new aiScene();
+        sCurrentScene = new aiScene();
         s_CurrentLevel = level;
 
         // Start by loading textures since we have that right here
-        s_CurrentScene->mNumTextures = tpl.images.size();
-        s_CurrentScene->mTextures = new aiTexture*[tpl.images.size()];
+        sCurrentScene->mNumTextures = tpl.images.size();
+        sCurrentScene->mTextures = new aiTexture*[tpl.images.size()];
         for (int i = 0; i < tpl.images.size(); i++) {
             TPL::Image image = tpl.images[i];
             aiTexture* texture = new aiTexture();
@@ -54,7 +54,7 @@ namespace SPMEditor {
                 texturePixels[p] = pngPixels[p];
             }
 
-            s_CurrentScene->mTextures[i] = texture;
+            sCurrentScene->mTextures[i] = texture;
         }
 
         // Load header
@@ -78,14 +78,14 @@ namespace SPMEditor {
 
         Section infoSection = FindSection("information", sectionTableOffset, header.sectionCount);
         std::vector<aiMesh*> meshes;
-        s_CurrentScene->mRootNode = ReadInfo(infoSection.fileOffset, meshes);
-        s_CurrentScene->mNumMeshes = meshes.size();
-        s_CurrentScene->mMeshes = new aiMesh*[meshes.size()];
-        for (int i = 0; i < s_CurrentScene->mNumMeshes; i++) {
-            s_CurrentScene->mMeshes[i] = meshes[i];
+        sCurrentScene->mRootNode = ReadInfo(infoSection.fileOffset, meshes);
+        sCurrentScene->mNumMeshes = meshes.size();
+        sCurrentScene->mMeshes = new aiMesh*[meshes.size()];
+        for (int i = 0; i < sCurrentScene->mNumMeshes; i++) {
+            sCurrentScene->mMeshes[i] = meshes[i];
         }
 
-        LogInfo("Scene has {} materials", s_CurrentScene->mNumMaterials);
+        LogInfo("Scene has %d materials", sCurrentScene->mNumMaterials);
 
         for (int i = 0; i < header.sectionCount; i++) {
             Section section;
@@ -94,13 +94,13 @@ namespace SPMEditor {
 
             section.name = (char*)(sData + sectionTableOffset + nameOffset + 8 * header.sectionCount);
 
-            LogInfo("Section 0x{:x} ({}) is at 0x{:x}", i, section.name, section.fileOffset);
+            LogInfo("Section 0x%x (%s) is at 0x%x", i, section.name.c_str(), section.fileOffset);
             ReadSection(section);
         }
 
-        LogInfo("Total texture count: {}", s_CurrentScene->mNumTextures);
+        LogInfo("Total texture count: %u", sCurrentScene->mNumTextures);
 
-        return s_CurrentScene;
+        return sCurrentScene;
     }
 
     Section LevelGeometry::FindSection(const std::string& name, int sectionTableOffset, int sectionCount) {
@@ -125,27 +125,27 @@ namespace SPMEditor {
             case str2int("vcd_table"): return;
         }
 
-        LogInfo("---------- Reading Section {} (0x{:x}) ----------", section.name, section.fileOffset);
+        LogInfo("---------- Reading Section %s (0x%x) ----------", section.name.c_str(), section.fileOffset);
         switch (str2int(section.name.c_str()))
         {
             default:
-                LogWarn("----------- Section {} at offset 0x{:x} not implemented -----------", section.name, section.fileOffset);
+                LogWarn("----------- Section %s at offset 0x%x not implemented -----------", section.name.c_str(), section.fileOffset);
                 return;
             case str2int("information"):
                     break;
             case str2int("texture_table"): {
                     std::vector<std::string> textureNames = ReadTextureNames(section.fileOffset);
                     // I swear to god if this ever happens
-                    Assert(s_CurrentScene->mNumTextures >= textureNames.size(), "Trying to read more texture names than there are textures! \n\tTexture Name Count: 0x{:x}\n\tScene Texture Count: {}", textureNames.size(), s_CurrentScene->mNumTextures);
+                    Assert(sCurrentScene->mNumTextures >= textureNames.size(), "Trying to read more texture names than there are textures! \n\tTexture Name Count: 0x%x\n\tScene Texture Count: %u", textureNames.size(), sCurrentScene->mNumTextures);
                     for (int i = 0; i < textureNames.size(); i++) {
-                        const auto texture = s_CurrentScene->mTextures[i];
-                        s_CurrentScene->mTextures[i]->mFilename = aiString(textureNames[i].c_str());
+                        const auto texture = sCurrentScene->mTextures[i];
+                        sCurrentScene->mTextures[i]->mFilename = aiString(textureNames[i].c_str());
                         FileWriter::WriteFile("Images/" + textureNames[i], (u8*)texture->pcData, (int)texture->mWidth);
                     }
                     break;
                 }
             case str2int("light_table"):
-                LogInfo("Map has 0x{} lights", *(int*)(sData + section.fileOffset));
+                LogInfo("Map has 0x%d lights", *(int*)(sData + section.fileOffset));
                 break;
             case str2int("fog_table"):
                 ReadFogTable(section.fileOffset);
@@ -192,16 +192,16 @@ namespace SPMEditor {
         info.rootColliderName += (long long)sData;
 
         LogInfo("----- Info Header -----");
-        LogInfo("File version:  {}", info.version);
-        LogInfo("Root Obj:      {}", info.rootObjName);
-        LogInfo("Root Trigger:  {}", info.rootColliderName);
-        LogInfo("Timestamp:     {}", info.timestamp);
+        LogInfo("File version:  %s", info.version);
+        LogInfo("Root Obj:      %s", info.rootObjName);
+        LogInfo("Root Trigger:  %s", info.rootColliderName);
+        LogInfo("Timestamp:     %s", info.timestamp);
 
         LogInfo("----- Reading Objects -----");
         int siblingOffset;
         aiNode* rootObject = ReadObject(info.objHeirarchyOffset, siblingOffset, meshes);
 
-        LogInfo("----- Object Count {} -----", objectCount);
+        LogInfo("----- Object Count %d -----", objectCount);
         return rootObject;
     }
 
@@ -210,7 +210,7 @@ namespace SPMEditor {
         // Read raw object data
         RawObject objectData = *(RawObject*)(sData + objectOffset);
         ByteSwap((int*)&objectData, sizeof(RawObject) / sizeof(int));
-        Assert(objectData.padding == 0, "Object data is not padding. Expected 0, got 0x{:x}", objectData.padding);
+        Assert(objectData.padding == 0, "Object data is not padding. Expected 0, got 0x%x", objectData.padding);
 
         // Create new object
         aiNode* object = new aiNode();
@@ -233,13 +233,8 @@ namespace SPMEditor {
         object->mMeshes = new u32[objectData.meshCount];
         object->mNumMeshes = objectData.meshCount;
 
-        LogInfo("{}Object '{}'", indent, name);
-        LogInfo("\t{}Type: {:5}, Offset: {:5x}, Mesh Count: {:3}", indent, type, objectOffset, objectData.meshCount);
-        /*LogInfo("\t{}Position   ({:5}, {:5}; {:5})", indent, objectData.position.x, objectData.position.y, objectData.position.z);*/
-        /*LogInfo("\t{}Rotation   ({:5}, {:5}; {:5})", indent, objectData.rotation.x, objectData.rotation.y, objectData.rotation.z);*/
-        /*LogInfo("\t{}Scale      ({:5}, {:5}; {:5})", indent, objectData.scale.x, objectData.scale.y, objectData.scale.z);*/
-        /*LogInfo("\t{}Bounds Min ({:5}, {:5}; {:5})", indent, objectData.boundsMin.x, objectData.boundsMin.y, objectData.boundsMin.z);*/
-        /*LogInfo("\t{}Bounds Max ({:5}, {:5}; {:5})", indent, objectData.boundsMax.x, objectData.boundsMax.y, objectData.boundsMax.z);*/
+        LogInfo("%sObject '%s'", indent.c_str(), name.c_str());
+        LogInfo("\t%sType: %s, Offset: 0x%x, Mesh Count: %d", indent.c_str(), type.c_str(), objectOffset, objectData.meshCount);
         for (int i = 0; i < objectData.meshCount; i++) {
             // Read the material offset
             // Fun story, these two lines killed a days worth of bug fixing (~10 hours)
@@ -292,7 +287,7 @@ namespace SPMEditor {
         MeshHeader header = *(MeshHeader*)(sData + offset);
         ByteSwap4(&header, 4);
 
-        Assert(header.constant == 0x1000001, "Mesh header constant is not constant. Expected 0x1000001, got 0x{:x}", header.constant);
+        Assert(header.constant == 0x1000001, "Mesh header constant is not constant. Expected 0x1000001, got 0x%x", header.constant);
 
         aiMesh* mesh = new aiMesh();
 
@@ -303,7 +298,7 @@ namespace SPMEditor {
         for (int i = 0; i < header.entryCount; i++) {
             VertexStrip::Header vertexStrip = stripHeaders[i];
             ByteSwap((int*)&vertexStrip, 2);
-            LogInfo("Reading vertex strip with attributes 0x{:x}", (u32)header.vertexAttributes);
+            LogInfo("Reading vertex strip with attributes 0x%x", (u32)header.vertexAttributes);
             ReadVertices(s_VCDTable, vertexStrip.entryOffset, header.vertexAttributes, vertices, indices);
         }
 
@@ -412,7 +407,6 @@ namespace SPMEditor {
                 auto va = vertices[a].position;
                 auto vb = vertices[b].position;
                 auto vc = vertex.position;
-                LogInfo("Adding triangle:\n\tA 0x{:5x}: ({}, {}, {})\n\tB 0x{:5x}: ({}, {}, {})\n\tC 0x{:5x}: ({}, {}, {})", a, va.x, va.y, va.z, b, vb.x, vb.y, vb.z, c, vc.x, vc.y, vc.z);
                 if (i % 2 != 0) {
                     // Front
                     indices.emplace_back(c);
@@ -453,24 +447,24 @@ namespace SPMEditor {
         table.colors = (Color*)(sData + _table.colorOffset + 4);
         table.uvs = (vec2<u16>*)(sData + _table.uvOffset + 4);
 
-        LogInfo("Vertex Count:      0x{:x}", table.vertexCount);
-        LogInfo("Light Color Count: 0x{:x}", table.normalCount);
-        LogInfo("Color Count:       0x{:x}", table.colorCount);
-        LogInfo("UV Count:          0x{:x}", table.uvCount);
-        LogInfo("Vertex Scale:      0x{:x}", table.vertexScale);
-        LogInfo("UV Scale:          0x{:x}", table.uvScale);
+        LogInfo("Vertex Count:      0x%x", table.vertexCount);
+        LogInfo("Light Color Count: 0x%x", table.normalCount);
+        LogInfo("Color Count:       0x%x", table.colorCount);
+        LogInfo("UV Count:          0x%x", table.uvCount);
+        LogInfo("Vertex Scale:      0x%x", table.vertexScale);
+        LogInfo("UV Scale:          0x%x", table.uvScale);
 
-        LogInfo("Vertex PTR:        0x{:x}", _table.vertexOffset);
-        LogInfo("Light Color PTR:   0x{:x}", _table.normalOffset); 
-        LogInfo("Color PTR:         0x{:x}", _table.colorOffset);
-        LogInfo("UV PTR:            0x{:x}", _table.uvOffset);
+        LogInfo("Vertex PTR:        0x%x", _table.vertexOffset);
+        LogInfo("Light Color PTR:   0x%x", _table.normalOffset); 
+        LogInfo("Color PTR:         0x%x", _table.colorOffset);
+        LogInfo("UV PTR:            0x%x", _table.uvOffset);
 
         return table;
     }
 
     void LevelGeometry::ReadFogTable(int tableOffset) {
-        int fogCount = ByteSwap(*(u32*)(sData + tableOffset));
-        Assert(fogCount <= 1, "Unable to read fog table. Too many / few entries: {}", fogCount);
+        u32 fogCount = ByteSwap(*(u32*)(sData + tableOffset));
+        Assert(fogCount <= 1, "Unable to read fog table. Too many / few entries: %u", fogCount);
         if (fogCount <= 0)
             return;
 
@@ -478,37 +472,37 @@ namespace SPMEditor {
         ByteSwap4(&fog, 2);
         s_CurrentLevel->fogSettings.emplace_back(fog);
 
-        LogInfo("Fog near plane:        {}", fog.start); 
-        LogInfo("Fog far plane:         {}", fog.end); 
-        LogInfo("Fog Color:             ({:x}, {:x}, {:x}, {:x})", fog.color.r, fog.color.g, fog.color.b, fog.color.a);
+        LogInfo("Fog near plane:        %f", fog.start); 
+        LogInfo("Fog far plane:         %f", fog.end); 
+        LogInfo("Fog Color:             (%x, %x, %x, %x)", fog.color.r, fog.color.g, fog.color.b, fog.color.a);
     }
 
     void LevelGeometry::ReadAnimationTable(int tableOffset) {
         uint animationCount = ByteSwap(*(uint*)(sData + tableOffset));
         uint* headers = (uint*)(sData + tableOffset + 4);
 
-        s_CurrentScene->mNumAnimations = animationCount;
-        s_CurrentScene->mAnimations = new aiAnimation*[animationCount];
+        sCurrentScene->mNumAnimations = animationCount;
+        sCurrentScene->mAnimations = new aiAnimation*[animationCount];
 
         for (int i = 0; i < animationCount; i++) {
             const AnimationHeader* header = (AnimationHeader*)(sData + ByteSwap(headers[i]));
 
-            s_CurrentScene->mAnimations[i] = new aiAnimation();
-            aiAnimation* animation = s_CurrentScene->mAnimations[i];
+            sCurrentScene->mAnimations[i] = new aiAnimation();
+            aiAnimation* animation = sCurrentScene->mAnimations[i];
             animation->mName = (char*)sData + ByteSwap((int)header->nameOffset);
             animation->mDuration = ByteSwap(header->frameCount);
             animation->mTicksPerSecond = 25;
 
-            LogTrace("Reading animation '{}' (0x{:x}) with {} frames.", animation->mName.C_Str(), ByteSwap(headers[i]), animation->mDuration);
-            Assert(header->constant == 0, "Animation '{}' (Index: {}) header constant is not constant. Expected 0, got {:x}", animation->mName.C_Str(), i, header->constant);
+            LogTrace("Reading animation '%s' (0x%x) with %d frames.", animation->mName.C_Str(), ByteSwap(headers[i]), animation->mDuration);
+            Assert(header->constant == 0, "Animation '%s' (Index: %d) header constant is not constant. Expected 0, got 0x%x", animation->mName.C_Str(), i, header->constant);
 
             if (header->transformAnimationOffset)
                 ReadTransformAnimation(ByteSwap(header->transformAnimationOffset), animation);
             if (header->materialAnimationOffset)
                 ReadTextureAnimation(ByteSwap(header->materialAnimationOffset));
 
-            for (int pad = 0; pad < header->padding.size(); pad++) {
-                Assert(header->padding[pad] == 0, "Animation header padding has value {:x}.", header->padding[pad]);
+            for (int pad = 0; pad < 4; pad++) {
+                Assert(header->padding[pad] == 0, "Animation header padding has value 0x%x.", header->padding[pad]);
             }
         }
     }
@@ -516,7 +510,6 @@ namespace SPMEditor {
     aiMatrix4x4 GetGlobalMatrix(aiNode* node) {
         aiVector3D nodeScale, nodePosition, nodeRotation;
         node->mTransformation.Decompose(nodeScale, nodeRotation, nodePosition);
-        LogTrace("\t\t'{}' Parent 0x{:x}: Position: ({}, {}, {}), Rotation: ({}, {}, {}), Scale: ({}, {}, {})", node->mName.C_Str(), (ulong)node->mParent, nodePosition.x, nodePosition.y, nodePosition.z, nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeScale.x, nodeScale.y, nodeScale.z);
         if (node->mParent) {
             return GetGlobalMatrix(node->mParent) * node->mTransformation;
         }
@@ -529,13 +522,13 @@ namespace SPMEditor {
         animation->mNumChannels = channelCount;
         animation->mChannels = new aiNodeAnim*[channelCount];
 
-        LogTrace("Reading transform animation (0x{:x})", offset);
+        LogTrace("Reading transform animation (0x%x)", offset);
         for (int i = 0; i < channelCount; i++) {
             int animPointer = ByteSwap(*(int*)(sData + offset + 4 + i * 4));
             TransformAnimation internalAnimation = *(TransformAnimation*)(sData + animPointer);
             ByteSwap4(&internalAnimation, sizeof(TransformAnimation) / 4);
 
-            Assert(internalAnimation.keyframeCount > 0, "Animation '{}' has no keyframes", (char*)sData + internalAnimation.nameOffset);
+            Assert(internalAnimation.keyframeCount > 0, "Animation '%s' has no keyframes", (char*)sData + internalAnimation.nameOffset);
 
             aiNodeAnim* channel = new aiNodeAnim();
             animation->mChannels[i] = channel;
@@ -549,7 +542,7 @@ namespace SPMEditor {
             channel->mScalingKeys  = new aiVectorKey[internalAnimation.keyframeCount];
             channel->mRotationKeys = new aiQuatKey[internalAnimation.keyframeCount];
 
-            LogTrace("\tObject '{}' has {} frames (0x{:x}). Base Position: ({}, {}, {}), Base Rotation: ({}, {}, {}), Base Scale: ({}, {}, {})", channel->mNodeName.C_Str(), internalAnimation.keyframeCount, animPointer,
+            LogTrace("\tObject '%s' has %d frames (0x%x). Base Position: (%f, %f, %f), Base Rotation: (%f, %f, %f), Base Scale: (%f, %f, %f)", channel->mNodeName.C_Str(), internalAnimation.keyframeCount, animPointer,
                     internalAnimation.basePosition.x,
                     internalAnimation.basePosition.y,
                     internalAnimation.basePosition.z,
@@ -561,11 +554,11 @@ namespace SPMEditor {
                     internalAnimation.baseScale.z
                     );
             TransformAnimation::Keyframe* keyframes = (TransformAnimation::Keyframe*)(sData + animPointer + sizeof(TransformAnimation));
-            aiNode* node = s_CurrentScene->mRootNode->FindNode(channel->mNodeName);
-            Assert(node != nullptr, "Failed to find node '{}'", channel->mNodeName.C_Str());
+            aiNode* node = sCurrentScene->mRootNode->FindNode(channel->mNodeName);
+            Assert(node != nullptr, "Failed to find node '%s'", channel->mNodeName.C_Str());
             aiVector3D nodeScale, nodePosition, nodeRotation;
             node->mTransformation.Decompose(nodeScale, nodeRotation, nodePosition);
-            LogTrace("\tPosition: ({}, {}, {}), Rotation: ({}, {}, {}), Scale: ({}, {}, {})", nodePosition.x, nodePosition.y, nodePosition.z, nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeScale.x, nodeScale.y, nodeScale.z);
+            LogTrace("\tPosition: (%f, %f, %f), Rotation: (%f, %f, %f), Scale: (%f, %f, %f)", nodePosition.x, nodePosition.y, nodePosition.z, nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeScale.x, nodeScale.y, nodeScale.z);
 
             TransformAnimation::Keyframe startingKey = keyframes[0];
             ByteSwap4(&startingKey, sizeof(TransformAnimation::Keyframe) / 4);
@@ -580,7 +573,7 @@ namespace SPMEditor {
                 aiVector3D scale = aiVector3D(keyframe.scale.x.start, keyframe.scale.y.start, keyframe.scale.z.start);
                 aiVector3D euler = aiVector3D(keyframe.rotation.x.start, keyframe.rotation.y.start, keyframe.rotation.z.start); 
 
-                LogTrace("\t\tKeyframe {}. Time: {}, Local Position: ({}, {}, {}) Local Rotation: ({}, {}, {}), Local Scale: ({}, {}, {})", key, keyframe.startFrame, 
+                LogTrace("\t\tKeyframe %d. Time: %f, Local Position: (%f, %f, %f) Local Rotation: (%f, %f, %f), Local Scale: (%f, %f, %f)", key, keyframe.startFrame, 
                         pos.x, pos.y, pos.z,
                         euler.x, euler.y, euler.z,
                         scale.x, scale.y, scale.z);
@@ -589,7 +582,7 @@ namespace SPMEditor {
                 euler /= 180.0f;
                 euler *= PI;
 
-                LogTrace("\t\t\t\t\t\tPosition: ({}, {}, {}) Rotation: ({}, {}, {}), Scale: ({}, {}, {})", 
+                LogTrace("\t\t\t\t\t\tPosition: (%f, %f, %f) Rotation: (%f, %f, %f), Scale: (%f, %f, %f)", 
                         pos.x, pos.y, pos.z,
                         euler.x, euler.y, euler.z,
                         scale.x, scale.y, scale.z);
@@ -632,25 +625,25 @@ namespace SPMEditor {
                 ByteSwap4(animation.keyframes.data(), sizeof(InternalMaterialAnimation::Keyframe) / 4);
             animations.emplace_back(animation);
 
-            LogInfo("Found Material Animation {} (0x{:x})", animation.animationName, animationOffset);
-            LogInfo("\tUnknown 0: {}", animation.unknown[0]);
-            LogInfo("\tUnknown 1: {}", animation.unknown[1]);
-            LogInfo("\tUnknown 2: {}", animation.unknown[2]);
-            LogInfo("\tKeyframe count: {}", animation.keyframes.size());
+            LogInfo("Found Material Animation %s (0x%x)", animation.animationName, animationOffset);
+            LogInfo("\tUnknown 0: %f", animation.unknown[0]);
+            LogInfo("\tUnknown 1: %f", animation.unknown[1]);
+            LogInfo("\tUnknown 2: %f", animation.unknown[2]);
+            LogInfo("\tKeyframe count: %l", animation.keyframes.size());
         }
     }
 
     void LevelGeometry::ReadMaterialNameTable(int tableOffset, int textureCount) {
         u32 materialCount = ByteSwap(*(u32*)(sData + tableOffset));
         LogInfo("----- Reading Material Name Table -----");
-        LogInfo("Material Count: 0x{:x}", materialCount);
+        LogInfo("Material Count: 0x%x", materialCount);
         MaterialNameEntry* entries = (MaterialNameEntry*)(sData + tableOffset + 4);
 
         if (materialCount > 0)
             s_FirstMaterialAddress = ByteSwap(entries[0].materialOffset);
 
-        s_CurrentScene->mNumMaterials = materialCount;
-        s_CurrentScene->mMaterials = new aiMaterial*[materialCount];
+        sCurrentScene->mNumMaterials = materialCount;
+        sCurrentScene->mMaterials = new aiMaterial*[materialCount];
 
         for (int i = 0; i < materialCount; i++) {
             // Read entry and material
@@ -664,8 +657,8 @@ namespace SPMEditor {
             aiMaterial* mat = new aiMaterial();
             mat->AddProperty(name, AI_MATKEY_NAME);
 
-            LogInfo("Material: '{}'", name->C_Str());
-            LogInfo("\tUse Color: ({:3}, {:3}, {:3}, {:3}), Use Vertex Color: {:5}, Unk 1: {:5}, Unk 2: {:5}, Use Texture: {:5}, Texture Info Ptr: 0x{:x}",
+            LogInfo("Material: '%s'", name->C_Str());
+            LogInfo("\tUse Color: (%x, %x, %x, %x), Use Vertex Color: %x, Unk 1: %x, Use Transparency: %x, Use Texture: %x, Texture Info Ptr: 0x%x",
                     material.color.r, material.color.g, material.color.b, material.color.a, material.useVertexColor, material.unk_1, material.useTransparency, material.useTexture, material.textureInfoPtr);
 
             // So the texture index is calculated by the offset of the data pointer
@@ -685,20 +678,20 @@ namespace SPMEditor {
                 aiString* textureName = new aiString((char*)(sData + mapTexture.nameOffset));
 
                 mat->AddProperty(textureName, AI_MATKEY_TEXTURE_DIFFUSE(0));
-                LogInfo("\tReferences texture '{}'", textureName->C_Str());
+                LogInfo("\tReferences texture '%s'", textureName->C_Str());
             }
 
             aiColor4D color = aiColor4D((float)material.color.r / 255, (float)material.color.g / 255, (float)material.color.b / 255, (float)material.color.a / 255);
             mat->AddProperty(&color, 4, AI_MATKEY_BASE_COLOR);
             mat->AddProperty(&color, 4, AI_MATKEY_COLOR_DIFFUSE);
 
-            s_CurrentScene->mMaterials[i] = mat;
+            sCurrentScene->mMaterials[i] = mat;
         }
     }
 
     void LevelGeometry::ReadCurveTable(int offset) {
         int curveCount = *(int*)(sData + offset);
-        LogTrace("----------------------------------------------------- Curve table has 0x{:x} entries -----------------------------------------------------", curveCount);
-        Assert(curveCount == 0, "Curve count is not zero: 0x{:x}", curveCount);
+        LogTrace("----------------------------------------------------- Curve table has 0x%x entries -----------------------------------------------------", curveCount);
+        Assert(curveCount == 0, "Curve count is not zero: 0x%x", curveCount);
     }
 }

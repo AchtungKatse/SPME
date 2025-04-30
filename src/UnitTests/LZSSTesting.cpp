@@ -2,6 +2,7 @@
 #include "IO/FileWriter.h"
 #include "UnitTests/LZSSTests.h"
 #include <cstdlib>
+#include <cstring>
 #include <vector>
 
 namespace SPMEditor::Testing { 
@@ -22,14 +23,14 @@ namespace SPMEditor::Testing {
 
         if (data.size() != decompressed.size())
         {
-            LogError("Decompressed size does not match original size. Got {}, expected {}", decompressed.size(), compressed.size());
+            LogError("Decompressed size does not match original size. Got %l, expected %l", decompressed.size(), compressed.size());
             return false;
         }
 
         if (memcmp(data.data(), decompressed.data(), data.size()) != 0)
         {
             for(int i = 0; i < 100; i++) {
-                LogError("{:3x} : {:3x}", data[i], decompressed[i]);
+                LogError("%x : %x", data[i], decompressed[i]);
             }
             return false;
         }

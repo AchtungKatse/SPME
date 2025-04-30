@@ -3,7 +3,7 @@
 #include "glad/glad.h"
 
 namespace SPMEditor {
-    PreviewMesh::PreviewMesh(const aiMesh* mesh) : m_IndexCount(0), m_VAO(-1), m_VBO(-1), m_EBO(-1), m_TextureIndex(-1), m_Name(0) {
+    PreviewMesh::PreviewMesh(const aiMesh* mesh) : m_VAO(-1), m_VBO(-1), m_EBO(-1), m_IndexCount(0), m_TextureIndex(-1), m_Name(0) {
         if (mesh == nullptr)
             return;
 
@@ -28,7 +28,7 @@ namespace SPMEditor {
         const std::vector<VertexAttribute>& attributes = GetVertexAttributes(mesh, stride);
         char vertices[stride * mesh->mNumVertices];
 
-        for (int i = 0; i < sizeof(vertices) / sizeof(float); i++)
+        for (size_t i = 0; i < sizeof(vertices) / sizeof(float); i++)
             *(float*)(vertices + sizeof(float) * i) = 12345678.9f;
 
         FlattenVertexArray(vertices, mesh, attributes, stride);

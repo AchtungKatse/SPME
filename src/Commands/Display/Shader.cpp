@@ -41,7 +41,7 @@ namespace SPMEditor
             switch (type)
             {
                 default:
-                    LogError("Undefined default shader type: {}", (int)type);
+                    LogError("Undefined default shader type: %d", (int)type);
                     return nullptr;
                 case ShaderType::Fragment:
                     return DefaultFragment;
@@ -62,7 +62,7 @@ namespace SPMEditor
     /*    char error[256];*/
     /*    memset(error, 0, sizeof(error));*/
     /*    const char* source = stb_include_file((char*)filePath, "Help", "res/shaders", error);*/
-    /*    CoreAssert(strlen(error) == 0, "Shader Include Error: {}", error);*/
+    /*    CoreAssert(strlen(error) == 0, "Shader Include Error: %d", error);*/
     /**/
     /**/
     /*    Create(shaderName, source, shaderType);*/
@@ -82,12 +82,12 @@ namespace SPMEditor
             source = GetDefaultShader(shaderType);
 
 
-        Assert(source != nullptr, "Shader source is null and failed to resolve default. Source: {}", source);
+        Assert(source != nullptr, "Shader source is null and failed to resolve default. Source: %s", source);
 
         m_ShaderIndex = glCreateShader(static_cast<unsigned int>(shaderType));
 
         glShaderSource(m_ShaderIndex, 1, &source, NULL);
-        LogTrace("Created shader {} (Type: {}) with index {}", name, (uint)shaderType, m_ShaderIndex);
+        LogTrace("Created shader %s (Type: %u) with index %u", name, (uint)shaderType, m_ShaderIndex);
 
         glCompileShader(m_ShaderIndex);
 
@@ -101,7 +101,7 @@ namespace SPMEditor
         if (!success)
         {
             glGetShaderInfoLog(m_ShaderIndex, logSize, NULL, infoLog);
-            LogError("Failed to compile shader '{0}': {1}", name, (char*)infoLog, source);
+            LogError("Failed to compile shader '%s': %s", name, (char*)infoLog, source);
 
             int sourceOffset = 0;
             int lineOffset = 0;
@@ -116,7 +116,7 @@ namespace SPMEditor
                 while (c == '\n')
                 {
                     lineBuffer[lineOffset++] = 0;
-                    LogError("\tLine {}: {}", lineNumber++, (char*)lineBuffer);
+                    LogError("\tLine %d: %s", lineNumber++, (char*)lineBuffer);
                     c = source[sourceOffset++];
                     lineOffset = 0;
                 }

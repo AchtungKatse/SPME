@@ -6,6 +6,5 @@
 #include <filesystem>
 #include <glad/glad.h>
 
-#include "Utility/SPMEAssert.h"
 #include "Utility/Logging.h"
 #include "Utility/str2int.h"

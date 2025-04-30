@@ -39,7 +39,7 @@ namespace SPMEditor {
         Directory dir;
         dir.name = name;
 
-        LogInfo("Reading virt directory '{}' with index '{}'", name , index);
+        LogInfo("Reading virt directory '%s' with index '%d'", name.c_str(), index);
 
         while (index < dirNode.size)
         {
@@ -89,7 +89,7 @@ namespace SPMEditor {
         }
 
         // Check the data is a u8 file
-        Assert(*(int*)data == 0x2D38AA55, "Data is not a valid u8 archive. Magic: 0x{:x} != 0x2D38AA55", *(int*)data);
+        Assert(*(int*)data == 0x2D38AA55, "Data is not a valid u8 archive. Magic: 0x%x != 0x2D38AA55", *(int*)data);
 
         // Read node table
         int numNodes = ByteSwap(*(int*)(data + 0x28)); // Basically jump to the size of the root node
@@ -140,7 +140,7 @@ namespace SPMEditor {
             dataOffset += file.size;
             int oldDataOffset = dataOffset;
             dataOffset += 0x40 - (dataOffset - 0x20) % 0x40;
-            LogInfo("Rounded data offset from {} to {}", oldDataOffset, dataOffset);
+            LogInfo("Rounded data offset from %d to %d", oldDataOffset, dataOffset);
         }
 
         sort(dir.subdirs.begin(), dir.subdirs.end(), SortDirectories);
@@ -162,7 +162,7 @@ namespace SPMEditor {
         fileSize += rootDirectory.GetTotalFileSizePadded();
 
         std::vector<u8> output(fileSize);
-        LogInfo("U8 Total size: {}", fileSize);
+        LogInfo("U8 Total size: %d", fileSize);
 
         // Create the header
         U8Archive::Header* header = (U8Archive::Header*)(output.data());
@@ -212,7 +212,7 @@ namespace SPMEditor {
         Directory dir;
         dir.name = directoryPath.filename().string();
 
-        LogInfo("Loading u8 data from directory '{}'", path);
+        LogInfo("Loading u8 data from directory '%s'", path.c_str());
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
             if (!entry.is_regular_file())
                 continue;
@@ -226,14 +226,14 @@ namespace SPMEditor {
             file.data = fileHandle.data;
             file.size = fileHandle.size;
 
-            LogInfo("\tFound file '{}'", file.name);
+            LogInfo("\tFound file '%s'", file.name.c_str());
         }
 
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
             if (!entry.is_directory())
                 continue;
 
-            LogInfo("Loading subdir '{}'", entry.path().string());
+            LogInfo("Loading subdir '%s'", entry.path().c_str());
             auto& subdirs = dir.subdirs;
             subdirs.push_back(LoadDirectory(entry.path().string()));
         }
@@ -244,7 +244,7 @@ namespace SPMEditor {
 
     bool U8Archive::TryCreateFromDirectory(const std::string& path, U8Archive& output)
     {
-        Assert(std::filesystem::is_directory(path), "Trying to create u8 archive but {} is not a directory.", path);
+        Assert(std::filesystem::is_directory(path), "Trying to create u8 archive but %s is not a directory.", path.c_str());
         Directory dot = LoadDirectory(path);
         dot.name = ".";
         output.rootDirectory.subdirs.emplace_back(dot);

@@ -131,10 +131,10 @@ namespace SPMEditor {
                     rot /= 180 * glm::pi<float>();
 
                     const char* nodeName = channel->mNodeName.C_Str();
-                    auto node = rootObject.FindNode(nodeName);
+                    PreviewObject *node = rootObject.FindNode(nodeName);
                     if (node != nullptr)
                     {
-                        Assert(node != nullptr, "Failed to find node '{}', ({})", nodeName, (long)node);
+                        Assert(node != nullptr, "Failed to find node '%s', (%p)", nodeName, node);
                         node->SetAnimationState(pos, rot, scale);
                     }
                 }

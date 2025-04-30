@@ -6,7 +6,7 @@ namespace SPMEditor {
         //Decompress LZSS-compressed bytes. Returns a bytearray.//
         u8 type = *data;
         u32 decompressedSize = *(u32*)data >> 8;
-        LogInfo("Decompressing lzss stream as type {:x}", type);
+        LogInfo("Decompressing lzss stream as type %x", type);
 
         if (type == 0x10)
             return DecompressLzss10(data + 4, length, decompressedSize);
@@ -32,7 +32,6 @@ namespace SPMEditor {
                                     if match_length is greater than this */
 
         u8 slidingWindow[WindowSize];
-        int windowIndex = WindowSize - F;
 
         int length, disp, k, r, z;
         u8 c;
@@ -173,7 +172,7 @@ namespace SPMEditor {
         }
 
         if (startIndex % 0x200 == 0)
-            LogInfo("Searching 0x{:x} / 0x{:x} \tLongest Length: 0x{:x}", startIndex, data.size(), length);
+            LogInfo("Searching 0x%x / 0x%x \tLongest Length: 0x%x", startIndex, data.size(), length);
 
         // >2 otherwise no point, same size of bytes
         return length > 2;
@@ -185,7 +184,7 @@ namespace SPMEditor {
     }
 
     std::vector<u8> LZSS::CompressLzss10(u8* data, u64 size) {
-        LogInfo("Compressing 0x{:x} bytes of lzss11 data", size);
+        LogInfo("Compressing 0x%x bytes of lzss11 data", size);
         output.reserve(size + 4);
 
         output.push_back(0x10);
@@ -195,10 +194,7 @@ namespace SPMEditor {
 
         *((u32*)output.data()) |= ((u32)size & 0xFFFFFF) << 8; // Writes length
 
-
-        int outputOffset = 4;
-        for (int i = 0; i < size;)
-        {
+        for (u64 i = 0; i < size;) {
             // Go in sets of 8
             u8 flags = 0;
             long flagOffset = output.size();
@@ -206,8 +202,8 @@ namespace SPMEditor {
 
             for (int j = 0; j < 8; j++, i++)
             {
-                int offset;
-                int length;
+                /*int offset;*/
+                /*int length;*/
                 /*if (Search(data, i, offset, length))*/
                 /*{*/
                 /*    flags |= 1 << j;*/

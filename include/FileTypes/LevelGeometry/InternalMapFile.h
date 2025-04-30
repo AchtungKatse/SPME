@@ -273,7 +273,7 @@ namespace SPMEditor::LevelInternal
         float frameCount;
         int transformAnimationOffset;
         int materialAnimationOffset;
-        std::array<int, 4> padding;
+        int padding[4];
     };
 
     struct Animation {

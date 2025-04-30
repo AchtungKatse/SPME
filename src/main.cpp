@@ -4,6 +4,7 @@
 #include "Commands/U8Commands.h"
 #include "FileTypes/LevelGeometry/GeometryExporter.h"
 #include "FileTypes/LevelData.h"
+#include "Utility/Logging.h"
 #include "assimp/Exporter.hpp"
 #include "assimp/postprocess.h"
 #include "Commands/TPLCommands.h"
@@ -33,7 +34,10 @@ std::string ToLower(const std::string& string) {
 }
 
 int main(int argc, char** argv) {
-    spdlog::set_level(spdlog::level::trace);
+    // Initialization
+    LoggingInitialize();
+
+    // Read commands
     for (int i = 1; i < argc; i++) {
         std::string arg = ToLower(argv[i]);
 
@@ -51,7 +55,7 @@ int main(int argc, char** argv) {
                     continue;
 
                 if (i + command->GetParameterCount() >= argc) {
-                    LogError("Failed to read command '{}'. Invalid number of arguments. Expected {}, got {}", commandName, command->GetParameterCount(), argc - i - 1);
+                    LogError("Failed to read command '%s'. Invalid number of arguments, expected %d, got %d", commandName.c_str(), command->GetParameterCount(), argc - i - 1);
                     abort();
                 }
 
@@ -67,7 +71,7 @@ int main(int argc, char** argv) {
         switch (str2int(arg.c_str()))
         {
             default:
-                LogInfo("Unrecognized command '{}'", arg);
+                LogInfo("Unrecognized command '%s'", arg.c_str());
                 break;
             case str2int("tpl"):
                 i++;
@@ -85,13 +89,13 @@ int main(int argc, char** argv) {
                 {
                     const std::string input = argv[i + 1];
                     const std::string output = argv[i + 2];
-                    Assert(std::filesystem::exists(input), "Map directory '{}' does not exist", input);
-                    Assert(std::filesystem::is_regular_file(input), "Map directory '{}' is not a regular file.", input);
+                    Assert(std::filesystem::exists(input), "Export Failed. Map directory '%s' does not exist", input.c_str());
+                    Assert(std::filesystem::is_regular_file(input), "Export Failed. Map directory '%s' is not a regular file.", input.c_str());
 
                     GeometryExporter* exporter = GeometryExporter::Create();
                     Assimp::Importer importer;
                     const aiScene* scene = importer.ReadFile(input.c_str(), aiPostProcessSteps::aiProcess_Triangulate | aiProcess_FlipWindingOrder | aiPostProcessSteps::aiProcess_EmbedTextures | aiPostProcessSteps::aiProcess_ValidateDataStructure | aiPostProcessSteps::aiProcess_FindInvalidData | aiPostProcessSteps::aiProcess_ForceGenNormals | aiProcess_JoinIdenticalVertices | aiProcess_GenUVCoords);
-                    Assert(scene, "Failed to load scene '{}'", input.c_str());
+                    Assert(scene, "Export failed. Assimp failed to load scene '%s'. Supported formats are GLB, GLTF, and FBX.", input.c_str());
                     exporter->Write(scene, output);
                     break;
                 }
@@ -110,14 +114,17 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Shutdown
+    LoggingShutdown();
+
     return 0;
 }
 
 void ConvertCommand(int argc, char** argv) {
-    Assert(argc >= 2, "Convert command requrires two arguments, {} provided. \n\tUsage: convert <filepath> <Output format (i.e. fbx, glb)> <Map Name [Optional]>", argc);
+    Assert(argc >= 2, "Convert command requrires two arguments, %d provided. \n\tUsage: convert <filepath> <Output format (i.e. fbx, glb)> <Map Name [Optional]>", argc);
     const char* inputFile = argv[0];
     const char* format = argv[1];
-    LogInfo("Converting file \"{}\"", inputFile);
+    LogInfo("Converting file \"%s\"", inputFile);
 
     const char* mapName = "";
     if (argc > 2) {
@@ -129,5 +136,5 @@ void ConvertCommand(int argc, char** argv) {
     LogInfo("------- Exporting Model -------");
     Assimp::Exporter exporter;
     const auto exportSuccess = exporter.Export(level.geometry, format, level.name + "." + format, aiProcess_EmbedTextures | aiProcess_Triangulate | aiProcess_GenBoundingBoxes | aiProcess_FlipWindingOrder);
-    Assert(exportSuccess == aiReturn_SUCCESS, "Failed to export {}", level.name);
+    Assert(exportSuccess == aiReturn_SUCCESS, "Failed to export %s", level.name.c_str());
 }

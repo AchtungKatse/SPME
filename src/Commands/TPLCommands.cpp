@@ -2,6 +2,7 @@
 #include "FileTypes/TPL.h"
 #include "Utility/str2int.h"
 #include "stb_image_write.h"
+#include <cstdio>
 #include <filesystem>
 
 namespace SPMEditor {
@@ -22,18 +23,23 @@ namespace SPMEditor {
         if (!std::filesystem::exists(outputDirectory))
             std::filesystem::create_directory(outputDirectory);
 
-        LogInfo("Dumping tpl '{}' to '{}'", inputFile, outputDirectory);
+        LogInfo("Dumping tpl '%s' to '%s'", inputFile, outputDirectory);
         TPL tpl = TPL::LoadFromFile(inputFile);
 
-        for (int i = 0; i < tpl.images.size(); i++) {
+        for (size_t i = 0; i < tpl.images.size(); i++) {
             auto& image = tpl.images[i];
             std::string& name = tpl.images[i].name;
-            if (image.name == "")
-            {
-                name = fmt::format("Image_{}", i);
+            char finalName[0x200] = {};
+            if (image.name == "") {
+                snprintf(finalName, sizeof(finalName), "Image_%lu", i);
+            } else {
+                strcpy(finalName, image.name.c_str());
             }
-            LogInfo("Writing image '{}/{}.png'", outputDirectory, name);
-            stbi_write_png(fmt::format("{}/{}.png", outputDirectory, name).c_str(), (int)image.header.width, (int)image.header.height, 4, image.pixels.data(), image.header.width * 4);
+            LogInfo("Writing image '%s/%s.png'", outputDirectory, finalName);
+
+            char path[0x200] = {};
+            snprintf(path, sizeof(path), "%s/%s.png", outputDirectory, finalName);
+            stbi_write_png(path, (int)image.header.width, (int)image.header.height, 4, image.pixels.data(), image.header.width * 4);
         }
     }
 }

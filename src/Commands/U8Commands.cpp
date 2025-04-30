@@ -11,7 +11,7 @@ namespace SPMEditor {
             {
                 default:
                     {
-                        LogError("U8 unrecognized argument '{}'", arg); 
+                        LogError("U8 unrecognized argument '%s'", arg); 
                         i--;
                         return;
                     }
@@ -21,7 +21,7 @@ namespace SPMEditor {
                         std::string input = argv[i + 1];
                         std::string output = argv[i + 2];
 
-                        Assert(std::filesystem::exists(input), "File '{}' does not exist.", input);
+                        Assert(std::filesystem::exists(input), "File '%s' does not exist.", input.c_str());
                         U8Archive archive = U8Archive::ReadFromFile(input, true);
                         archive.Dump(output);
 
@@ -36,10 +36,10 @@ namespace SPMEditor {
                         std::string output = argv[i + 2];
                         std::string compressed = argv[i + 3];
 
-                        Assert(std::filesystem::exists(input), "Directory '{}' does not exist.", input);
+                        Assert(std::filesystem::exists(input), "Directory '%s' does not exist.", input.c_str());
 
                         U8Archive archive;
-                        Assert(U8Archive::TryCreateFromDirectory(input, archive), "Failed to create U8 archive from directory '{}'", input);
+                        Assert(U8Archive::TryCreateFromDirectory(input, archive), "Failed to create U8 archive from directory '%s'", input.c_str());
                         std::vector<u8> data = archive.CompileU8();
 
                         if (compressed == "1" || compressed == "true")

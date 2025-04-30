@@ -10,10 +10,8 @@ namespace SPMEditor
 {
     PreviewTexture::PreviewTexture() : 
         m_TextureID(0),
-        /*m_TextureHandle(0),*/
-        /*m_IsResident(false),*/
-        m_Height(0),
         m_Width(0),
+        m_Height(0),
         m_Pixels(nullptr)
     { }
 
@@ -25,7 +23,7 @@ namespace SPMEditor
         // Check if file path exists
         if (!std::filesystem::exists(filePath))
         {
-            LogError("Failed to open texture '{}'", filePath);
+            LogError("Failed to open texture '%s'", filePath);
             constexpr std::array<unsigned char, 3> DefaultColor = {255, 0, 255};
             Create(DefaultColor.data(), 1, 1, format, wrap, filter);
             return;
@@ -60,7 +58,7 @@ namespace SPMEditor
         m_TextureID = 0;
         glGenTextures(1, &m_TextureID);
         glBindTexture(GL_TEXTURE_2D, m_TextureID);
-        Assert(m_TextureID != 0, "Failed to generate texture: {}", m_TextureID);
+        Assert(m_TextureID != 0, "Failed to generate texture: %d", m_TextureID);
 
         glBindTexture(GL_TEXTURE_2D, m_TextureID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (GLenum)wrap);	
@@ -75,7 +73,7 @@ namespace SPMEditor
     void PreviewTexture::Bind(GLuint binding)
     {
         /*CoreAssert(!m_IsResident, "Trying to bind texture to uniform when it is resident to the GPU (call Texture::ReleaseARB)");*/
-        Assert(binding >= 0 && binding < 32, "Binding is out of bounds. 0 <= {} < 32", binding);
+        Assert(binding >= 0 && binding < 32, "Binding is out of bounds. 0 <= %u < 32", binding);
 
         glActiveTexture(GL_TEXTURE0 + binding);
         glBindTexture(GL_TEXTURE_2D, m_TextureID);
@@ -87,7 +85,7 @@ namespace SPMEditor
     /*        return m_TextureHandle;*/
     /**/
     /*    m_TextureHandle = glGetTextureHandleARB(m_TextureID);*/
-    /*    CoreAssert(m_TextureHandle > 0, "Failed to get texture handle: {}", m_TextureHandle);*/
+    /*    CoreAssert(m_TextureHandle > 0, "Failed to get texture handle: %ul", m_TextureHandle);*/
     /**/
     /*    return m_TextureHandle;*/
     /*}*/
@@ -108,8 +106,8 @@ namespace SPMEditor
     void PreviewTexture::SetPixels(const void* data, uint width, uint height, uint xOffset, uint yOffset, PixelFormat format, uint level)
     {
         Assert(m_TextureID != 0, "Trying to set texture data without having created it");
-        Assert(width + xOffset <= m_Width, "Trying to set pixels out of bounds of texture, {} >= {}", width + xOffset, m_Width);
-        Assert(height + yOffset <= m_Height, "Trying to set pixels out of bounds of texture, {} >= {}", height + yOffset, m_Height);
+        Assert(width + xOffset <= m_Width, "Trying to set pixels out of bounds of texture, %u >= %u", width + xOffset, m_Width);
+        Assert(height + yOffset <= m_Height, "Trying to set pixels out of bounds of texture, %u >= %u", height + yOffset, m_Height);
 
         glTextureSubImage2D(m_TextureID, level, xOffset, yOffset, width, height, (GLuint)format, GL_UNSIGNED_BYTE, data);
     }

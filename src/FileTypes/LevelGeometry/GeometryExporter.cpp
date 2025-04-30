@@ -139,7 +139,7 @@ namespace SPMEditor {
     }
 
     void GeometryExporter::WriteMapTextures() {
-        LogInfo("Writing {} textures", mScene->mNumTextures);
+        LogInfo("Writing %d textures", mScene->mNumTextures);
         for (size_t i = 0; i < mScene->mNumTextures; i++) {
             // Create map texture
             const aiTexture* texture = mScene->mTextures[i];
@@ -167,7 +167,7 @@ namespace SPMEditor {
             }
             mTextureNameTable.emplace_back(mapTexture.nameOffset);
             mTextureNameToIndex.emplace(texture->mFilename.C_Str(), mTextureNameToIndex.size());
-            LogInfo("Adding texture name '{}' at index {}", texture->mFilename.C_Str(), mTextureNameToIndex.size());
+            LogInfo("Adding texture name '%s' at index %u", texture->mFilename.C_Str(), mTextureNameToIndex.size());
 
             // Everything else is unkown
             AppendInt8((s8)mapTexture.transparency);
@@ -202,7 +202,7 @@ namespace SPMEditor {
 
         char nameBuffer[nameBufferSize];
 
-        LogInfo("Writing name buffer of size: 0x{}", nameBufferSize);
+        LogInfo("Writing name buffer of size: 0x%x", nameBufferSize);
 
         for (size_t i = 0; i < mSections.size(); i++) {
             strcpy(nameBuffer + nameOffset, mSections[i].name);
@@ -223,7 +223,7 @@ namespace SPMEditor {
         GetMeshDataRecursive(mScene->mRootNode);
         AddPadding(0x20);
 
-        LogInfo("Writing 0x{:x} vertices", mVertexTable.size());
+        LogInfo("Writing 0x%x vertices", mVertexTable.size());
         mVCDTable.vertexOffset = AppendInt32(mVertexTable.size());
         mFileSize += mVertexTable.size() * 6;
         u32 _vertexScale = 1 << vertexScale;
@@ -260,7 +260,7 @@ namespace SPMEditor {
 
         AddPadding(0x20);
         mVCDTable.normalOffset = AppendInt32(mNormalTable.size());
-        LogInfo("Writing {} normals.", mNormalTable.size());
+        LogInfo("Writing %u normals.", mNormalTable.size());
         for (const auto pair : mNormalTable) {
             const auto normal = pair.first;
             int index = pair.second;
@@ -278,7 +278,7 @@ namespace SPMEditor {
                 const auto vertex = mesh->mVertices[v];
                 if (!mVertexTable.contains(vertex)) {
                     if (mVertexTable.size() == 0)
-                        LogInfo("Adding vertex ({}, {}, {}) to vertex table at index {}", vertex.x, vertex.y, vertex.z, mVertexTable.size());
+                        LogInfo("Adding vertex (%f, %f, %f) to vertex table at index %u", vertex.x, vertex.y, vertex.z, mVertexTable.size());
                     mVertexTable.emplace(vertex, mVertexTable.size());
                 }
                 if (mesh->HasVertexColors(0))
@@ -310,15 +310,15 @@ namespace SPMEditor {
     void GeometryExporter::WriteMaterials() {
         for (size_t i = 0; i < mScene->mNumMaterials; i++) {
             aiMaterial* material = mScene->mMaterials[i];
-            LogInfo("Adding material. Name: {}", material->GetName().C_Str());
+            LogInfo("Adding material. Name: %s", material->GetName().C_Str());
             int address = AppendStringPointer(material->GetName().C_Str());
             int nameAddress = mStringTable[material->GetName().C_Str()];
             mMaterialTable.emplace_back(MaterialNameEntry{.nameOffset = nameAddress, .materialOffset = address});
 
             aiVector3D materialColor(1);
             float opacity = 0;
-            if (AI_SUCCESS != material->Get(AI_MATKEY_BASE_COLOR, materialColor)) LogWarn("Failed to get diffuse color from material '{}'", material->GetName().C_Str());
-            if (AI_SUCCESS != material->Get(AI_MATKEY_OPACITY, opacity)) LogWarn("Failed to get opacity from material '{}'", material->GetName().C_Str());
+            if (AI_SUCCESS != material->Get(AI_MATKEY_BASE_COLOR, materialColor)) LogWarn("Failed to get diffuse color from material '%s'", material->GetName().C_Str());
+            if (AI_SUCCESS != material->Get(AI_MATKEY_OPACITY, opacity)) LogWarn("Failed to get opacity from material '%s'", material->GetName().C_Str());
 
             AppendUInt8((u8)(materialColor.x * 255));
             AppendUInt8((u8)(materialColor.y * 255));
@@ -329,6 +329,7 @@ namespace SPMEditor {
             // TODO: Allow user to configure materials
             u8 useVertexColors = 1;
             u8 unk_1 = 1;
+            // TODO: Transparency will be disabled until configuration is implemented because it results in non-transparent objects being culled.
             u8 useTransparency = 1;
             u8 useTexture = material->GetTextureCount(aiTextureType_DIFFUSE) > 0;
             /*useTexture = false;*/
@@ -340,22 +341,22 @@ namespace SPMEditor {
             if (useTexture) {
                 Assert(mScene->mNumTextures > 0, "Material uses textures but scene does not model does not contain any embedded textures");
                 aiString* path = new aiString();
-                Assert(aiReturn_SUCCESS == material->GetTexture(aiTextureType_DIFFUSE, 0, path), "Failed to get texture for material '{}'", material->GetName().C_Str());
+                Assert(aiReturn_SUCCESS == material->GetTexture(aiTextureType_DIFFUSE, 0, path), "Failed to get texture for material '%s'", material->GetName().C_Str());
                 u32 textureInfoPtr = 0x14 + mScene->mNumTextures * sizeof(MapTexture);
                 if (mTextureNameToIndex.contains(path->C_Str())) {
                     textureInfoPtr += mTextureNameToIndex[path->C_Str()] * sizeof(MapTexture::Info);
                 } else if (path->C_Str()[0] == '*') {
                     // Check if texture name is assimp using an image index
                     int imageIndex = std::stoi(path->C_Str() + 1);
-                    LogTrace("\tUsing texture index: {}", imageIndex);
+                    LogTrace("\tUsing texture index: %d", imageIndex);
                     textureInfoPtr += imageIndex * sizeof(MapTexture::Info);
 
                 }
                 else {
-                    LogWarn("Texture Name To Index table does not have texture '{}'. Using first texture.", path->C_Str());
+                    LogWarn("Texture Name To Index table does not have texture '%s'. Using first texture.", path->C_Str());
                     textureInfoPtr += sizeof(MapTexture) * (i % mScene->mNumTextures);
                 }
-                LogInfo("Material texture path '{}' has index of {} and offset of 0x{:x}", path->C_Str(), mTextureNameToIndex[path->C_Str()], textureInfoPtr);
+                LogInfo("Material texture path '%s' has index of %d and offset of %p", path->C_Str(), mTextureNameToIndex[path->C_Str()], textureInfoPtr);
                 AppendPointer(textureInfoPtr);
             } else {
                 AppendInt32(0);
@@ -385,7 +386,7 @@ namespace SPMEditor {
     }
 
     void GeometryExporter::WriteMesh(const aiMesh* mesh) {
-        LogInfo("Writing mesh '{}'", mesh->mName.C_Str());
+        LogInfo("Writing mesh '%s'", mesh->mName.C_Str());
         // Get the vertex attribues
         int vertexSize = 2;
         VertexAttributes attr = VertexAttributes::Position;
@@ -404,10 +405,10 @@ namespace SPMEditor {
 
         std::vector<VertexStrip::Header> stripHeaders;
         if (!mesh->mNormals) {
-            LogWarn("Mesh {} does not have normals", mesh->mName.C_Str());
+            LogWarn("Mesh %s does not have normals", mesh->mName.C_Str());
         }
         if (!mesh->HasTextureCoords(0)) {
-            LogWarn("Mesh {} does not have UVs", mesh->mName.C_Str());
+            LogWarn("Mesh %s does not have UVs", mesh->mName.C_Str());
         }
         // HACK: For the sake of making an easy implementation, each strip is just going to be one triangle
         // TODO: Add triangle stripping algorithm
@@ -419,8 +420,8 @@ namespace SPMEditor {
             AppendInt16(3); // Vertex count, 3 since one triangle at a time
 
             // NOTE: this loop decrements i for face winding reasons
-            for (int i = face.mNumIndices - 1; i >= 0; i--) {
-                Assert(face.mNumIndices == 3, "Invalid num indices per face. Got {}, expected 3", face.mNumIndices);
+            for (uint i = face.mNumIndices - 1; i >= 0 && i != 0xffffffff; i--) {
+                Assert(face.mNumIndices == 3, "Invalid num indices per face. Got %u, expected 3", face.mNumIndices);
                 u32 index = face.mIndices[i];
                 const aiVector3D vertex = mesh->mVertices[index];
 
@@ -479,7 +480,7 @@ namespace SPMEditor {
             selfAddress = AppendStringPointer("world_root");
         else 
             selfAddress = AppendStringPointer(node->mName.C_Str());
-        LogInfo("Writing object '{}' at {}", node->mName.C_Str(), selfAddress);
+        LogInfo("Writing object '%s' at %d", node->mName.C_Str(), selfAddress);
 
         if (node->mNumMeshes > 0)
             AppendStringPointer("mesh");
@@ -517,7 +518,7 @@ namespace SPMEditor {
 
         }
 
-        LogTrace("Wrting {} meshes", node->mNumMeshes);
+        LogTrace("Wrting %u meshes", node->mNumMeshes);
         AppendInt32(node->mNumMeshes);
 
         // Add filler for no reason, might try to remove this later
@@ -528,7 +529,7 @@ namespace SPMEditor {
 
         for (size_t i = 0; i < node->mNumMeshes; i++) {
             const aiMesh* mesh = mScene->mMeshes[node->mMeshes[i]];
-            LogInfo("Mesh has material index {} ('{}')", mesh->mMaterialIndex, mScene->mMaterials[mesh->mMaterialIndex]->GetName().C_Str());
+            LogInfo("Mesh has material index %u ('%s')", mesh->mMaterialIndex, mScene->mMaterials[mesh->mMaterialIndex]->GetName().C_Str());
             int materialOffset = AppendPointer(mMaterialTable[mesh->mMaterialIndex].materialOffset);
             int meshOffset = AppendPointer(mMeshTable[node->mMeshes[i]]);
         }
@@ -673,7 +674,7 @@ namespace SPMEditor {
 
         int fileOffset = AppendPointer(offset);
         mStringPointers.emplace_back(fileOffset);
-        LogTrace("Writing text '{}' at {} (string offset: {})", text, fileOffset, offset);
+        LogTrace("Writing text '%s' at %d (string offset: %d)", text, fileOffset, offset);
 
         return fileOffset;
     }
