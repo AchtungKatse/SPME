@@ -7,9 +7,6 @@
 [submodule "dependencies/fpng"]
 	path = dependencies/fpng
 	url = https://github.com/richgel999/fpng.git
-[submodule "dependencies/spdlog"]
-	path = dependencies/spdlog
-	url = https://github.com/gabime/spdlog.git
 [submodule "dependencies/glfw"]
 	path = dependencies/glfw
 	url = https://github.com/glfw/glfw.git
