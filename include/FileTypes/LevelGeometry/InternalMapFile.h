@@ -1,4 +1,5 @@
 #pragma once
+#include "FileTypes/TPL.h"
 #include "Types/Types.h"
 #include "assimp/vector3.h"
 #ifdef __GNUC__
@@ -159,7 +160,7 @@ namespace SPMEditor::LevelInternal
         Color color;
         bool useVertexColor;
         bool unk_1;
-        bool unk_2;
+        bool useTransparency;
         bool useTexture;
         int textureInfoPtr; // From my old notes. Idfk what this is
         // The structure is 0x114 bytes long but idk what the rest of everything is atm so I'm just filling it with unknown floats (most of the values are floats)
@@ -178,18 +179,23 @@ namespace SPMEditor::LevelInternal
 
     struct MapTexture // Used exclusively in the map.dat file to describe a texture in textures.tpl
     {
+        enum class TransparencyType : u8 {
+            Opaque = 0,
+            Clip = 1,
+        };
+
         struct Info
         {
             u32 dataOffset;
             u32 unknown; // Padding?
-            u8 unk_1;
-            u8 unk_2;
+            u8 wrapU; // NOTE: Same as TPL Image wrap mode but u8 instead of u32
+            u8 wrapV;
             u8 unk_3;
             u8 unk_4;
         };
 
         u32 nameOffset;
-        u8 unk_1;
+        TransparencyType transparency;
         u8 unk_2;
         u8 unk_3;
         u8 unk_4;

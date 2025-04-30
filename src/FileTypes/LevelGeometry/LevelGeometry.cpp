@@ -666,7 +666,7 @@ namespace SPMEditor {
 
             LogInfo("Material: '{}'", name->C_Str());
             LogInfo("\tUse Color: ({:3}, {:3}, {:3}, {:3}), Use Vertex Color: {:5}, Unk 1: {:5}, Unk 2: {:5}, Use Texture: {:5}, Texture Info Ptr: 0x{:x}",
-                    material.color.r, material.color.g, material.color.b, material.color.a, material.useVertexColor, material.unk_1, material.unk_2, material.useTexture, material.textureInfoPtr);
+                    material.color.r, material.color.g, material.color.b, material.color.a, material.useVertexColor, material.unk_1, material.useTransparency, material.useTexture, material.textureInfoPtr);
 
             // So the texture index is calculated by the offset of the data pointer
             // The first thing in the map.dat file is the texture table which make calculating the texture index easy

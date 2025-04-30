@@ -146,19 +146,31 @@ namespace SPMEditor {
             MapTexture mapTexture;
             mapTexture.nameOffset = AppendStringPointer(texture->mFilename.C_Str());
 
+            mapTexture.transparency = MapTexture::TransparencyType::Opaque;
             if (texture->mHeight != 0) {
                 mapTexture.width = texture->mWidth;
                 mapTexture.height = texture->mHeight;
             } else {
                 int channels = 0;
-                stbi_load_from_memory((u8*)texture->pcData, texture->mWidth, (int*)&mapTexture.width, (int*)&mapTexture.height, &channels, 0);
+                Color* colors = (Color*)stbi_load_from_memory((u8*)texture->pcData, texture->mWidth, (int*)&mapTexture.width, (int*)&mapTexture.height, &channels, 0);
+
+                // Determin transparency type
+                if (channels == 4) {
+                    for (int i = 0; i < mapTexture.width * mapTexture.height; i++) {
+                        // TODO: Research other transparency modes
+                        if (colors[i].a != 0xFF) {
+                            mapTexture.transparency = MapTexture::TransparencyType::Clip;
+                        }
+                    }
+                }
+
             }
             mTextureNameTable.emplace_back(mapTexture.nameOffset);
             mTextureNameToIndex.emplace(texture->mFilename.C_Str(), mTextureNameToIndex.size());
             LogInfo("Adding texture name '{}' at index {}", texture->mFilename.C_Str(), mTextureNameToIndex.size());
 
             // Everything else is unkown
-            AppendInt8(0);
+            AppendInt8((s8)mapTexture.transparency);
             AppendInt8(0);
             AppendInt8(0);
             AppendInt8(0);
@@ -172,8 +184,10 @@ namespace SPMEditor {
         for (size_t i = 0; i < mScene->mNumTextures; i++) {
             int address = AppendPointer(0x14 + i * sizeof(MapTexture));
             AppendInt32(0); // padding
-            AppendInt8(0);
-            AppendInt8(0);
+            // TODO: The following u8's are wrap mode,
+            // This defaults them to repeat but should be user configurable
+            AppendInt8(1);
+            AppendInt8(1);
             AppendInt8(0);
             AppendInt8(0);
         }
@@ -240,8 +254,8 @@ namespace SPMEditor {
         for (const auto pair : mUvTable) {
             const auto uv = pair.first;
             int index = pair.second;
-            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x24) = ByteSwap((u16)(uv.x * _uvScale));
-            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x26) = ByteSwap((u16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
+            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x24) = ByteSwap((s16)(uv.x * _uvScale));
+            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x26) = ByteSwap((s16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
         }
 
         AddPadding(0x20);
@@ -279,9 +293,9 @@ namespace SPMEditor {
 
                 if (mesh->HasTextureCoords(0)) {
                     if (!mUvTable.contains(mesh->mTextureCoords[0][v])) {
-
                         aiVector3D uv = mesh->mTextureCoords[0][v];
-                        mUvTable.emplace(uv, mUvTable.size());
+                        size_t index = mUvTable.size();
+                        mUvTable.emplace(uv, index);
                     }
                 }
             }
@@ -312,14 +326,15 @@ namespace SPMEditor {
             /*AppendUInt8((u8)((1 - opacity) * 255));*/
             AppendUInt8(255);
 
-            u8 useVertexColors = 0;
+            // TODO: Allow user to configure materials
+            u8 useVertexColors = 1;
             u8 unk_1 = 1;
-            u8 unk_2 = 0;
+            u8 useTransparency = 1;
             u8 useTexture = material->GetTextureCount(aiTextureType_DIFFUSE) > 0;
             /*useTexture = false;*/
             AppendUInt8(useVertexColors);
             AppendUInt8(unk_1);
-            AppendUInt8(unk_2);
+            AppendUInt8(useTransparency);
             AppendUInt8(useTexture);
 
             if (useTexture) {
@@ -374,24 +389,28 @@ namespace SPMEditor {
         // Get the vertex attribues
         int vertexSize = 2;
         VertexAttributes attr = VertexAttributes::Position;
-        if (mesh->HasTextureCoords(0)) {
-            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::UV); 
+        if (mesh->HasNormals()) {
+            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::Normal);
             vertexSize += 2;
         }
         if (mesh->HasVertexColors(0)) {
             attr = (VertexAttributes)((int)attr | (int)VertexAttributes::Color);
             vertexSize += 2;
         }
-        if (mesh->HasNormals()) {
-            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::Normal);
+        if (mesh->HasTextureCoords(0)) {
+            attr = (VertexAttributes)((int)attr | (int)VertexAttributes::UV); 
             vertexSize += 2;
         }
 
         std::vector<VertexStrip::Header> stripHeaders;
-        if (!mesh->mNormals)
+        if (!mesh->mNormals) {
             LogWarn("Mesh {} does not have normals", mesh->mName.C_Str());
-        // For the sake of making an easy implementation, each strip is just going to be one triangle
-        // Should probably make this better at a later date
+        }
+        if (!mesh->HasTextureCoords(0)) {
+            LogWarn("Mesh {} does not have UVs", mesh->mName.C_Str());
+        }
+        // HACK: For the sake of making an easy implementation, each strip is just going to be one triangle
+        // TODO: Add triangle stripping algorithm
 
         for (size_t f = 0; f < mesh->mNumFaces; f++) {
             int headerOffset = mFileSize;
@@ -407,12 +426,17 @@ namespace SPMEditor {
 
                 // Write the vertex index as a u16
                 AppendInt16(mVertexTable[vertex]);
-                if (mesh->mNormals)
+                if (mesh->mNormals) {
                     AppendInt16(mNormalTable[mesh->mNormals[index]]);
-                if (mesh->HasVertexColors(0))
+                }
+                if (mesh->HasVertexColors(0)) {
                     AppendInt16(mColorTable[mesh->mColors[0][index]]);
-                if (mesh->HasTextureCoords(0))
-                    AppendInt16(mUvTable[mesh->mTextureCoords[0][index]]);
+                }
+                if (mesh->HasTextureCoords(0)) {
+                    aiVector3D uv = mesh->mTextureCoords[0][index];
+                    Assert(mUvTable.contains(uv), "Mesh cannot use UV since it is not in uv table.");
+                    AppendInt16(mUvTable[uv]);
+                }
             }
 
 
@@ -423,7 +447,10 @@ namespace SPMEditor {
                 size += padding;
             }
 
-            VertexStrip::Header header {headerOffset, size};
+            VertexStrip::Header header { 
+                .entryOffset = headerOffset, 
+                .length = size,
+            };
             stripHeaders.emplace_back(header);
             AddPadding(0x20);
         }

@@ -135,7 +135,7 @@ namespace SPMEditor {
                 }
             }
 
-            glVertexAttribPointer(i, attributes[i].GetElementCount(), GL_FLOAT, GL_FALSE, stride, (const void*)attributes[i].offset);
+            glVertexAttribPointer(i, attributes[i].GetElementCount(), GL_FLOAT, GL_FALSE, stride, (const void*)(ulong)attributes[i].offset);
             glEnableVertexAttribArray(i);
         }
     }

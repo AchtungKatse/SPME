@@ -388,8 +388,8 @@ namespace SPMEditor {
                 .width = (u16)info.mTexture->mWidth,
                 .format = info.mFormat,
                 .imageDataAddress = 0, // HACK: Fix this please otherwise it will not break
-                .wrapS = 0,
-                .wrapT = 0,
+                .wrapS = ImageWrapMode::Repeat,
+                .wrapT = ImageWrapMode::Repeat,
                 .minFilter = 0,
                 .magFilter = 0,
                 .LODBias = 1.0f,
@@ -423,10 +423,14 @@ namespace SPMEditor {
                 // Copy pixel data into image data
                 images[i].pixels.resize(width * height);
                 LogTrace("TPL::Create() image {} is compressed with {} channels. Pixels size: {} ({}x{})", i, channels, images[i].pixels.size(), width, height);
-                for (int j = 0; j < width * height; j++) {
-                    u8* imagePixelData = (u8*)images[i].pixels.data();
-                    for (int w = 0; w < channels; w++) {
-                        imagePixelData[j * 4 + w] = decompressedPixels [j * channels + w];
+                u8* imagePixelData = (u8*)images[i].pixels.data();
+                if (channels == 4) {
+                    memcpy(imagePixelData, decompressedPixels, height * width * 4);
+                } else {
+                    for (int j = 0; j < width * height; j++) {
+                        for (int w = 0; w < channels; w++) {
+                            imagePixelData[j * 4 + w] = decompressedPixels [j * channels + w];
+                        }
                     }
                 }
 
@@ -484,8 +488,8 @@ namespace SPMEditor {
                 .height = ByteSwap(baseHeader.height),
                 .width = ByteSwap(baseHeader.width),
                 .format = (TPLImageFormat)ByteSwap((u32)baseHeader.format),
-                .wrapS = ByteSwap(baseHeader.wrapS),
-                .wrapT = ByteSwap(baseHeader.wrapT),
+                .wrapS = (ImageWrapMode)ByteSwap((u32)baseHeader.wrapS), // TODO: Add user configured wrap mode
+                .wrapT = (ImageWrapMode)ByteSwap((u32)baseHeader.wrapT), // TODO: Add user configured wrap mode
                 .minFilter = ByteSwap(baseHeader.minFilter),
                 .magFilter = ByteSwap(baseHeader.magFilter),
                 .LODBias = ByteSwap(baseHeader.LODBias),
@@ -507,7 +511,8 @@ namespace SPMEditor {
 
         // Write padding before first image
         char paddingBuffer[0x20] = {};
-        outStream.write(paddingBuffer, 0x20 - (outStream.tellp() % 0x20));
+        int padAmount = 0x20 - (outStream.tellp() % 0x20);
+        outStream.write(paddingBuffer, padAmount);
 
         // Now write all the pixels
         for (size_t i = 0; i < images.size(); i++) {
@@ -516,25 +521,31 @@ namespace SPMEditor {
             int blockYCount = image.header.height / 4;
             for (int blockY = 0; blockY < blockYCount; blockY++) {
                 for (int blockX = 0; blockX < blockXCount; blockX++) {
+                    u8 pixelBuffer[64];
+                    u32 pixelBufferOffset = 0;
                     for (int y = 0; y < 4; y++) {
                         for (int x = 0; x < 4; x++) {
                             // Write A then R
                             size_t pixelIndex = x + blockX * 4 + (y + blockY * 4) * image.header.width;
                             Assert(pixelIndex < image.pixels.size(), "TPLWrite() trying to read image pixel from out of bounds index");
-                            const Color& color = image.pixels[pixelIndex];
-                            outStream.write((const char*)&color.a, 1);
-                            outStream.write((const char*)&color.r, 1);
+                            Color color = image.pixels[pixelIndex];
+
+                            pixelBuffer[pixelBufferOffset++] = color.a;
+                            pixelBuffer[pixelBufferOffset++] = color.r;
                         }
                     }
                     for (int y = 0; y < 4; y++) {
                         for (int x = 0; x < 4; x++) {
                             size_t pixelIndex = x + blockX * 4 + (y + blockY * 4) * image.header.width;
                             Assert(pixelIndex < image.pixels.size(), "TPLWrite() trying to read image pixel from out of bounds index");
-                            const Color& color = image.pixels[pixelIndex];
-                            outStream.write((const char*)&color.g, 1);
-                            outStream.write((const char*)&color.b, 1);
+                            Color color = image.pixels[pixelIndex];
+
+                            pixelBuffer[pixelBufferOffset++] = color.g;
+                            pixelBuffer[pixelBufferOffset++] = color.b;
                         }
                     }
+
+                    outStream.write((const char*)pixelBuffer, 64);
                 }
             }
         }

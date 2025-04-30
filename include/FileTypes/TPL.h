@@ -27,17 +27,24 @@ namespace SPMEditor
             uint mImageCreateInfoCount;
     };
 
+    enum class ImageWrapMode : u32 {
+        Clamp = 0,
+        Repeat = 1,
+        Mirror = 2,
+    };
+
     class TPL
     {
         public:
+
             struct ImageHeader
             {
                 u16	height;
                 u16	width;
                 TPLImageFormat format;
                 u32	imageDataAddress;
-                u32	wrapS;
-                u32	wrapT;
+                ImageWrapMode wrapS;
+                ImageWrapMode wrapT;
                 u32	minFilter;
                 u32	magFilter;
                 float LODBias;
