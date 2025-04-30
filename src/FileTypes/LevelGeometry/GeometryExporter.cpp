@@ -1,5 +1,5 @@
 #include "FileTypes/LevelGeometry/GeometryExporter.h"
-#include "FileTypes/LevelGeometry/InternalMapFile.h"
+#include "FileTypes/LevelGeometry/MapStructures.h"
 #include "FileTypes/TPL.h"
 #include "Types/Types.h"
 #include "core/Logging.h"
@@ -13,14 +13,14 @@
 #include <string>
 #include "stb_image.h"
 
-using namespace SPMEditor::LevelInternal;
+using namespace SPMEditor::MapStructures;
 namespace SPMEditor {
     GeometryExporter* GeometryExporter::Create() { 
         return new GeometryExporter();
     }
 
     GeometryExporter::GeometryExporter() : mVCDTable({}) {
-        memset(&mVCDTable, 0, sizeof(RawVCDTable));
+        memset(&mVCDTable, 0, sizeof(VCDTable));
     }
     GeometryExporter::~GeometryExporter() {
         delete mData;
@@ -50,7 +50,7 @@ namespace SPMEditor {
 
         constexpr int DataBufferSize = 1024 * 1024 * 50; // 50MB
         constexpr int TextBufferSize = 1024 * 1024 * 10; // 10MB
-        mData = new char[DataBufferSize]; // Overly large buffer
+        mData = new u8[DataBufferSize]; // Overly large buffer
         mTextBuffer = new char[TextBufferSize];
         memset(mData, 0, DataBufferSize);
 
@@ -111,7 +111,7 @@ namespace SPMEditor {
         WriteHeader();
 
         // Write to disk
-        output.write(mData, mFileSize);
+        output.write((const char*)mData, mFileSize);
         WriteSectionTable(output);
         size_t fileSize = ByteSwap((int)output.tellp());
         output.seekp(std::ios::beg);
@@ -225,49 +225,53 @@ namespace SPMEditor {
         AddPadding(0x20);
 
         LogInfo("Writing 0x%x vertices", mVertexTable.size());
-        mVCDTable.vertexOffset = AppendInt32(mVertexTable.size());
+        mVCDTable.vertices = AppendInt32(mVertexTable.size());
         mFileSize += mVertexTable.size() * 6;
         u32 _vertexScale = 1 << vertexScale;
         for (const auto pair : mVertexTable) {
             const auto v = pair.first;
             int vertexIndex = pair.second;
-            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x24) = ByteSwap((s16)(v.x * _vertexScale));
-            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x26) = ByteSwap((s16)(v.y * _vertexScale));
-            *(u16*)(mData + mVCDTable.vertexOffset + vertexIndex * 0x6 + 0x28) = ByteSwap((s16)(v.z * _vertexScale));
+            vec3<s16>* vertex = &mVCDTable.vertices.Get(mData)[vertexIndex];
+            vertex->x = ByteSwap((s16)(v.x * _vertexScale));
+            vertex->y = ByteSwap((s16)(v.y * _vertexScale));
+            vertex->z = ByteSwap((s16)(v.z * _vertexScale));
         }
 
         AddPadding(0x20);
-        mVCDTable.colorOffset = AppendInt32(mColorTable.size());
+        mVCDTable.colors = AppendInt32(mColorTable.size());
         mFileSize += mColorTable.size() * 4;
         for (const auto pair : mColorTable) {
             const auto color = pair.first;
             int index = pair.second;
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x24) = ByteSwap((u8)(color.r * 255));
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x25) = ByteSwap((u8)(color.r * 255));
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x26) = ByteSwap((u8)(color.r * 255));
-            *(u8*)(mData + mVCDTable.colorOffset + index * 0x4 + 0x27) = ByteSwap((u8)(color.r * 255));
+            Color* outColor = &mVCDTable.colors.Get(mData)[index];
+            outColor->r = ByteSwap((u8)(color.r * 255));
+            outColor->g = ByteSwap((u8)(color.r * 255));
+            outColor->b = ByteSwap((u8)(color.r * 255));
+            outColor->a = ByteSwap((u8)(color.r * 255));
         }
 
         AddPadding(0x20);
-        mVCDTable.uvOffset = AppendInt32(mUvTable.size());
+        mVCDTable.uvs = AppendInt32(mUvTable.size());
         mFileSize += mUvTable.size() * 4;
         u32 _uvScale = 1 << uvScale;
         for (const auto pair : mUvTable) {
             const auto uv = pair.first;
             int index = pair.second;
-            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x24) = ByteSwap((s16)(uv.x * _uvScale));
-            *(u16*)(mData + mVCDTable.uvOffset + index * 0x4 + 0x26) = ByteSwap((s16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
+            vec2<s16>* outUV = &mVCDTable.uvs.Get(mData)[index];
+            outUV->x = ByteSwap((s16)(uv.x * _uvScale));
+            outUV->y = ByteSwap((s16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
         }
 
         AddPadding(0x20);
-        mVCDTable.normalOffset = AppendInt32(mNormalTable.size());
+        mVCDTable.normals = AppendInt32(mNormalTable.size());
         LogInfo("Writing %u normals.", mNormalTable.size());
         for (const auto pair : mNormalTable) {
             const auto normal = pair.first;
             int index = pair.second;
-            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = ByteSwap((u8)(normal.x * 64));
-            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = ByteSwap((u8)(normal.y * 64));
-            *(u8*)(mData + mVCDTable.normalOffset + index * 0x4 + 0x24) = ByteSwap((u8)(normal.z * 64));
+            vec3<s8>* outNormal = &mVCDTable.normals.Get(mData)[index];
+            outNormal->x = ByteSwap((u8)(normal.x * 64));
+            outNormal->y = ByteSwap((u8)(normal.y * 64));
+            outNormal->z = ByteSwap((u8)(normal.z * 64));
         }
         AddPadding(0x20);
     }
@@ -450,7 +454,7 @@ namespace SPMEditor {
 
             VertexStrip::Header header { 
                 .entryOffset = headerOffset, 
-                .length = size,
+                    .length = size,
             };
             stripHeaders.emplace_back(header);
             AddPadding(0x20);
@@ -513,7 +517,7 @@ namespace SPMEditor {
             AppendInt32(0); // subdataptr
         } else {
             int subdataOffset = AppendPointer(0); // subdataptr
-            mObjectSubdatas.emplace_back(ObjectSubData{RawObject::SubData(), subdataOffset});
+            mObjectSubdatas.emplace_back(ObjectSubData{Object::SubData(), subdataOffset});
             mPointerList.emplace_back(subdataOffset);
 
         }
@@ -543,14 +547,14 @@ namespace SPMEditor {
                 node->mNumChildren, 
                 NODE_MAX_CHILD_COUNT);
 
-        RawObject* children[NODE_MAX_CHILD_COUNT];
+        Object* children[NODE_MAX_CHILD_COUNT];
         int childrenOffsets[NODE_MAX_CHILD_COUNT];
 
         u32 previousChild = 0;
         for (size_t i = 0; i < node->mNumChildren; i++) {
             int childOffset = WriteObject(node->mChildren[i], selfAddress, previousChild);
             previousSibling = childOffset;
-            children[i] = (RawObject*)(mData + 0x20 + childOffset);
+            children[i] = (Object*)(mData + 0x20 + childOffset);
             childrenOffsets[i] = childOffset;
         }
 
@@ -559,12 +563,12 @@ namespace SPMEditor {
             // Write next
             if (i < node->mNumChildren - 1) {
                 children[i]->nextSibling = ByteSwap(childrenOffsets[i + 1]);
-                AddPointer(childrenOffsets[i] + offsetof(RawObject, nextSibling));
+                AddPointer(childrenOffsets[i] + offsetof(Object, nextSibling));
             }
             // Write previous
             if (i > 0) {
                 children[i]->previousSibling = ByteSwap(childrenOffsets[i - 1]);
-                AddPointer(childrenOffsets[i] + offsetof(RawObject, previousSibling));
+                AddPointer(childrenOffsets[i] + offsetof(Object, previousSibling));
             }
         }
 
@@ -577,17 +581,17 @@ namespace SPMEditor {
     }
 
     int GeometryExporter::GetObjectSize(const aiNode* node) {
-        return sizeof(RawObject) + std::max(node->mNumMeshes, 1u) * 8;
+        return sizeof(Object) + std::max(node->mNumMeshes, 1u) * 8;
     }
 
     void GeometryExporter::WriteVCDTable() {
-        mVCDAddress = AppendPointer(mVCDTable.vertexOffset);
-        AppendPointer(mVCDTable.normalOffset);
+        mVCDAddress = AppendPointer(mVCDTable.vertices.address);
+        AppendPointer(mVCDTable.normals.address);
         AppendInt32(0);
-        AppendPointer(mVCDTable.colorOffset);
+        AppendPointer(mVCDTable.colors.address);
         AppendInt32(mVCDTable.unknown_2);
         AppendInt32(mVCDTable.unknown_3);
-        AppendPointer(mVCDTable.uvOffset);
+        AppendPointer(mVCDTable.uvs.address);
         AppendBuffer(mVCDTable.unknown_4, sizeof(mVCDTable.unknown_4));
         AppendInt32(mVCDTable.vertexScale);
         AppendInt32(mVCDTable.uvScale);
@@ -639,7 +643,8 @@ namespace SPMEditor {
     }
 
     void GeometryExporter::WriteTPL() {
-        TPLImageCreateInfo imageCreateInfos[mScene->mNumTextures];
+        constexpr u32 MAX_TEXTURE_COUNT = 1024;
+        TPLImageCreateInfo imageCreateInfos[MAX_TEXTURE_COUNT];
         for (size_t i = 0; i < mScene->mNumTextures; i++) {
             imageCreateInfos[i].mFormat = TPLImageFormat::RGBA32;
             imageCreateInfos[i].mTexture = mScene->mTextures[i];

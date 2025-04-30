@@ -14,6 +14,7 @@ namespace SPMEditor {
 
     FileHandle filesystem_read_file(const char* path) {
         Assert(std::filesystem::exists(path), "Failed to find file '%s'", path);
+        Assert(std::filesystem::is_regular_file(path), "File '%s' is not a regular file", path);
 
         std::ifstream file (path, std::ios::binary | std::ios::ate);
         size_t size = file.tellg();

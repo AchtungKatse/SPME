@@ -1,5 +1,5 @@
 #pragma once
-#include "FileTypes/LevelGeometry/InternalMapFile.h"
+#include "FileTypes/LevelGeometry/MapStructures.h"
 #include "assimp/scene.h"
 #include <map>
 #include <vector>
@@ -25,12 +25,12 @@ namespace SPMEditor {
             };
 
             struct MaterialSubData {
-                LevelInternal::Material::SubData data;
+                MapStructures::Material::SubData data;
                 int offset;
             };
 
             struct ObjectSubData {
-                LevelInternal::RawObject::SubData data;
+                MapStructures::Object::SubData data;
                 int offset;
             };
 
@@ -98,14 +98,14 @@ namespace SPMEditor {
 
             const aiScene* mScene;
 
-            char* mData;
+            u8* mData;
             int mFileSize;
             char* mTextBuffer;
             int mTextBufferSize;
 
             int mVCDAddress;
             int mRootObjectPtr;
-            LevelInternal::RawVCDTable mVCDTable;
+            MapStructures::VCDTable mVCDTable;
 
             std::vector<int> mStringPointers;
             std::vector<Section> mSections;
@@ -117,7 +117,7 @@ namespace SPMEditor {
             std::vector<int> mTextureNameTable;
             std::map<std::string, int> mTextureNameToIndex;
             std::vector<int> mMeshTable;
-            std::vector<LevelInternal::MaterialNameEntry> mMaterialTable;
+            std::vector<MapStructures::MaterialNameEntry> mMaterialTable;
             std::map<std::string, int> mStringTable;
             std::map<aiVector3D, int> mVertexTable;
             std::map<aiVector3D, int> mUvTable;

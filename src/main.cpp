@@ -1,4 +1,5 @@
 #include "Commands/CommandType.h"
+#include "Commands/LZSSCommands.h"
 #include "Commands/TPLCommands.h"
 #include "Commands/U8Commands.h"
 #include "Commands/debug_commands.h"
@@ -7,6 +8,22 @@
 #include <cstring>
 
 using namespace SPMEditor;
+
+command_t lzss_commands[] = {
+    {
+        .name = "decompress",
+        .format = "<input file> <output file>",
+        .description = "Decompresses an lzss compressed file.",
+        .parameter_count = 2,
+        .run = lzss_command_decompress,
+    }, {
+        .name = "compress",
+        .format = "<input file> <output file>",
+        .description = "Uses lzss to compress a file.",
+        .parameter_count = 2,
+        .run = lzss_command_compress,
+    },
+};
 
 command_t debug_commands[] = {
     {
@@ -47,13 +64,13 @@ command_t tpl_commands[] = {
 command_t u8_commands[] = {
     {
         .name = "extract",
-        .format = "<u8 file> <output directory>",
+        .format = "<u8 file> <output directory> <compressed>",
         .description = "Extracts the contents of a u8 to a directory",
         .parameter_count = 2,
         .run = u8_command_extract,
     }, {
         .name = "compile",
-        .format = "<directory> <output file> <compressed>",
+        .format = "<directory> <output file>",
         .description = "Creates a u8 archive file from a directory",
         .parameter_count = 3,
         .run = u8_command_compile,
@@ -77,7 +94,11 @@ command_group_t command_groups[] = {
         .name = "debug",
         .commands = debug_commands,
         .command_count = sizeof(debug_commands) / sizeof(command_t),
-    }, 
+    }, {
+        .name = "lzss",
+        .commands = lzss_commands,
+        .command_count = sizeof(lzss_commands) / sizeof(command_t),
+    }
 };
 
 constexpr u32 command_group_count = sizeof(command_groups) / sizeof(command_group_t);
@@ -92,7 +113,7 @@ int main(int argc, char** argv) {
     // Initialization
     LoggingInitialize();
 
-    if (argc <= 1) {
+    if (argc <= 2) {
         LogError("Invalid number of arguments");
         display_available_commands();
         return -1;
@@ -140,6 +161,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    LogInfo("Running command %s %s", target_command_group->name, command->name);
     command->run(argc - 3, (const char**)argv + 3); // Cast argv to const
 
     // Shutdown

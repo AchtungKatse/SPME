@@ -1,5 +1,5 @@
 #pragma once
-#include "FileTypes/LevelGeometry/InternalMapFile.h"
+#include "FileTypes/LevelGeometry/MapStructures.h"
 #include "FileTypes/U8Archive.h"
 #include "assimp/scene.h"
 #include <vector>
@@ -14,6 +14,6 @@ namespace SPMEditor {
             U8Archive u8Files;
             std::string name;
             aiScene* geometry;
-            std::vector<LevelInternal::FogEntry> fogSettings;
+            std::vector<MapStructures::FogEntry> fogSettings;
     };
 }

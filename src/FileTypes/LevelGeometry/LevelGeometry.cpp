@@ -1,5 +1,5 @@
 #include "FileTypes/LevelGeometry/LevelGeometry.h"
-#include "FileTypes/LevelGeometry/InternalMapFile.h"
+#include "FileTypes/LevelGeometry/MapStructures.h"
 #include "Types/Types.h"
 #include "core/Logging.h"
 #include "assimp/anim.h"
@@ -178,25 +178,19 @@ namespace SPMEditor {
 
         // Doing it this way instead of just casting the pointer to an info header
         // because char* is 8 bytes long while the offsets in the header are only 4 bytes long
-        InfoSection info;
-        info.version = (char*)(long long)ByteSwap(headerPtr[0]);
-        info.objHeirarchyOffset = ByteSwap(headerPtr[1]);
-        info.rootObjName = (char*)(long long)ByteSwap(headerPtr[2]);
-        info.rootColliderName = (char*)(long long)ByteSwap(headerPtr[3]);
-        info.timestamp = (char*)(long long)ByteSwap(headerPtr[4]);
-
-        // Add the data ptr to each pointer in the info header
-        // because the offsets are relative to the start of the file (data)
-        info.version += (long long)sData;
-        info.timestamp += (long long)sData;
-        info.rootObjName += (long long)sData;
-        info.rootColliderName += (long long)sData;
+        InfoSection info = {
+            .version                = ByteSwap(headerPtr[0]),
+            .objHeirarchyOffset     = ByteSwap(headerPtr[1]),
+            .rootObjName            = ByteSwap(headerPtr[2]),
+            .rootColliderName       = ByteSwap(headerPtr[3]),
+            .timestamp              = ByteSwap(headerPtr[4]),
+        };
 
         LogInfo("----- Info Header -----");
-        LogInfo("File version:  %s", info.version);
-        LogInfo("Root Obj:      %s", info.rootObjName);
-        LogInfo("Root Trigger:  %s", info.rootColliderName);
-        LogInfo("Timestamp:     %s", info.timestamp);
+        LogInfo("File version:  %s", info.version.Get(sData));
+        LogInfo("Root Obj:      %s", info.rootObjName.Get(sData));
+        LogInfo("Root Trigger:  %s", info.rootColliderName.Get(sData));
+        LogInfo("Timestamp:     %s", info.timestamp.Get(sData));
 
         LogInfo("----- Reading Objects -----");
         int siblingOffset;
@@ -209,8 +203,8 @@ namespace SPMEditor {
     aiNode* LevelGeometry::ReadObject(int objectOffset, int& nextSibling, std::vector<aiMesh*>& meshes, std::string indent) {
         objectCount++;
         // Read raw object data
-        RawObject objectData = *(RawObject*)(sData + objectOffset);
-        ByteSwap((int*)&objectData, sizeof(RawObject) / sizeof(int));
+        Object objectData = *(Object*)(sData + objectOffset);
+        ByteSwap((int*)&objectData, sizeof(Object) / sizeof(int));
         Assert(objectData.padding == 0, "Object data is not padding. Expected 0, got 0x%x", objectData.padding);
 
         // Create new object
@@ -241,8 +235,8 @@ namespace SPMEditor {
             // Fun story, these two lines killed a days worth of bug fixing (~10 hours)
             // I forgot to add the i * 8 (read each mesh / material pair) so it was just reading 2 of the same meshes
             // and this made it so a lot of the objects were just missing. Man I hate programming sometimes
-            int materialOffset = ByteSwap(*(int*)(sData + objectOffset + i * 8+ sizeof(RawObject)));
-            int meshOffset = ByteSwap(*(int*)(sData + objectOffset + i * 8 + sizeof(RawObject) + 4));
+            int materialOffset = ByteSwap(*(int*)(sData + objectOffset + i * 8+ sizeof(Object)));
+            int meshOffset = ByteSwap(*(int*)(sData + objectOffset + i * 8 + sizeof(Object) + 4));
 
 
             // Actually do the reading
@@ -357,8 +351,8 @@ namespace SPMEditor {
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_POSITION) != 0)
             {
                 u16 vertexIndex = ByteSwap(*vertexData++);
-                vec3<short> rawVertex = vcd.vertices[vertexIndex];
-                ByteSwap4(&rawVertex, 3);
+                vec3<short> rawVertex = vcd.vertices.Get(sData)[vertexIndex];
+                ByteSwap2(&rawVertex, 3);
 
                 int scaleFactor = vcd.vertexScale;
                 vertex.position = Vector3((float)rawVertex.x / scaleFactor, (float)rawVertex.y / scaleFactor, (float)rawVertex.z / scaleFactor);
@@ -366,23 +360,16 @@ namespace SPMEditor {
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_NORMAL) != 0)
             {
                 int index = ByteSwap(*vertexData++);
-                vertex.normal.x = (float)(*((u8*)(vcd.normals) + index * 3 + 0)) / 0x40;
-                vertex.normal.y = (float)(*((u8*)(vcd.normals) + index * 3 + 1)) / 0x40;
-                vertex.normal.z = (float)(*((u8*)(vcd.normals) + index * 3 + 2)) / 0x40;
-                vertex.normal.y = 5;
+                vec3<s8> normal = vcd.normals.Get(sData)[index];
+                vertex.normal.x = (float)(normal.x) / 0x40;
+                vertex.normal.y = (float)(normal.y) / 0x40;
+                vertex.normal.z = (float)(normal.z) / 0x40;
             }
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_COLOR) != 0)
             {
                 u16 colorIndex = ByteSwap(*vertexData);
 
-                u8 r = *((u8*)(vcd.colors) + colorIndex * sizeof(Color) + 0);
-                u8 g = *((u8*)(vcd.colors) + colorIndex * sizeof(Color) + 1);
-                u8 b = *((u8*)(vcd.colors) + colorIndex * sizeof(Color) + 2);
-                u8 a = *((u8*)(vcd.colors) + colorIndex * sizeof(Color) + 3);
-
-                Color rawColor(r,g,b,a);
-
-                vertex.color = rawColor;
+                vertex.color = vcd.colors.Get(sData)[colorIndex];
                 vertexData++;
             }
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_UNK_1) != 0) {
@@ -390,7 +377,7 @@ namespace SPMEditor {
             }
             if (((u32)attributes & (u32)VertexAttributes::VERTEX_ATTRIBUTE_UV) != 0) {
                 int uvIndex = ByteSwap(*vertexData++);
-                vec2<u16> rawUv = vcd.uvs[uvIndex];
+                vec2<s16> rawUv = vcd.uvs.Get(sData)[uvIndex];
                 ByteSwap2(&rawUv, 2);
 
                 int uvScale = vcd.uvScale;
@@ -424,39 +411,19 @@ namespace SPMEditor {
     }
 
     VCDTable LevelGeometry::ReadVCDTable(int offset) {
-        RawVCDTable _table = *(RawVCDTable*)(sData + offset);
-        ByteSwap4(&_table, sizeof(RawVCDTable) / 4);
-        VCDTable table;
         LogInfo("----- Reading VCD Table -----");
+        VCDTable table = *(VCDTable*)(sData + offset);
+        ByteSwap4(&table, sizeof(VCDTable) / 4);
 
-        // This function is funky
-        // I doubt it is 100% accurate
-        // It looks like the VCDTable has a somewhat dynamic struct
-        // where some sections have a count followed by a number of pointers
-        table.vertexCount = ByteSwap(*(int*)(sData + _table.vertexOffset));
-        table.normalCount = ByteSwap(*(int*)(sData + _table.normalOffset));
-        table.colorCount = ByteSwap(*(int*)(sData + _table.colorOffset));
-        table.uvCount = ByteSwap(*(int*)(sData + _table.uvOffset));
+        // NOTE:: Adding 4 to the addresses to skip count
+        table.normals.address += 4;
+        table.vertices.address += 4;
+        table.uvs.address += 4;
+        table.colors.address += 4;
 
-        table.vertexScale = 1 << _table.vertexScale;
-        table.uvScale = 1 << _table.uvScale;
-
-        table.vertices = (vec3<short>*)(sData + _table.vertexOffset+ 4);
-        table.normals = (Color*)(sData + _table.normalOffset + 4);
-        table.colors = (Color*)(sData + _table.colorOffset + 4);
-        table.uvs = (vec2<u16>*)(sData + _table.uvOffset + 4);
-
-        LogInfo("Vertex Count:      0x%x", table.vertexCount);
-        LogInfo("Light Color Count: 0x%x", table.normalCount);
-        LogInfo("Color Count:       0x%x", table.colorCount);
-        LogInfo("UV Count:          0x%x", table.uvCount);
-        LogInfo("Vertex Scale:      0x%x", table.vertexScale);
-        LogInfo("UV Scale:          0x%x", table.uvScale);
-
-        LogInfo("Vertex PTR:        0x%x", _table.vertexOffset);
-        LogInfo("Light Color PTR:   0x%x", _table.normalOffset); 
-        LogInfo("Color PTR:         0x%x", _table.colorOffset);
-        LogInfo("UV PTR:            0x%x", _table.uvOffset);
+        // NOTE:: Converting scales to their real value
+        table.vertexScale = 1 << table.vertexScale;
+        table.uvScale = 1 << table.uvScale;
 
         return table;
     }
@@ -605,7 +572,7 @@ namespace SPMEditor {
             InternalMaterialAnimation::Keyframe* keyframes = (InternalMaterialAnimation::Keyframe*)(sData + animationOffset + sizeof(InternalMaterialAnimation));
 
             MaterialAnimation animation;
-            animation.animationName = (char*)sData + ByteSwap(textureAnimation->materialNameOffset);
+            animation.animationName = ByteSwap(textureAnimation->materialNameOffset);
 
             animation.unknown[0] = textureAnimation->unknown[0];
             animation.unknown[1] = textureAnimation->unknown[1];
@@ -624,7 +591,7 @@ namespace SPMEditor {
                 ByteSwap4(animation.keyframes.data(), sizeof(InternalMaterialAnimation::Keyframe) / 4);
             animations.emplace_back(animation);
 
-            LogInfo("Found Material Animation %s (0x%x)", animation.animationName, animationOffset);
+            LogInfo("Found Material Animation %s (0x%x)", animation.animationName.Get(sData), animationOffset);
             LogInfo("\tUnknown 0: %f", animation.unknown[0]);
             LogInfo("\tUnknown 1: %f", animation.unknown[1]);
             LogInfo("\tUnknown 2: %f", animation.unknown[2]);

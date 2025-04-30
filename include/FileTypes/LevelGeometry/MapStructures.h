@@ -2,6 +2,7 @@
 #include "FileTypes/TPL.h"
 #include "Types/Types.h"
 #include "assimp/vector3.h"
+#include <filesystem>
 #ifdef __GNUC__
 #define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
 #endif
@@ -10,8 +11,31 @@
 #define PACK( __Declaration__ ) __pragma( pack(push, 1) ) __Declaration__ __pragma( pack(pop))
 #endif
 
-namespace SPMEditor::LevelInternal
+namespace SPMEditor::MapStructures
 {
+    /**
+     * @brief This is a utility class that allows the compiler to read a 32 bit file pointer then access that data as if it were a 64 bit pointer
+     * @tparam T The type of the pointer
+     */
+    template<typename T>
+        class FilePointer {
+            public: 
+                FilePointer() = default;
+                FilePointer(u32 address) : address(address) { }
+
+                u32 address;
+
+                /**
+                 * @brief Returns a usable pointer to the file data
+                 *
+                 * @param base A pointer to the first byte in the file.
+                 * @return Pointer of type T
+                 */
+                T* Get(const u8* base) {
+                    return (T*)(base + address);
+                }
+        };
+
     enum VertexAttributes : u32 {
         VERTEX_ATTRIBUTE_POSITION = 1,
         VERTEX_ATTRIBUTE_NORMAL = 2,
@@ -21,28 +45,24 @@ namespace SPMEditor::LevelInternal
         VERTEX_ATTRIBUTE_UNK_2 = 0x20,
     };
 
-    PACK(struct VertexStrip
-    {
-        struct Header
-        {
+    PACK(struct VertexStrip {
+            struct Header {
             int entryOffset;
             int length;
-        };
+            };
 
-        u8 unknown;
-        u16 vertexCount;
-    });
+            u8 unknown;
+            u16 vertexCount;
+            });
 
-    struct MeshHeader
-    {
+    struct MeshHeader {
         int constant;
         int entryCount;
         VertexAttributes vertexAttributes;
         int VCDOffset;
     };
 
-    struct FileHeader
-    {
+    struct FileHeader {
         int fileLength;
         int pointerListStart;
         int pointerEntryCount;
@@ -52,32 +72,20 @@ namespace SPMEditor::LevelInternal
         void ByteSwap();
     };
 
-    struct Section
-    {
+    struct Section {
         int fileOffset;
         std::string name;
     };
 
-    struct InfoSection
-    {
-        char* version;
+    struct InfoSection {
+        FilePointer<char> version;
         int objHeirarchyOffset;
-        char* rootObjName;
-        char* rootColliderName;
-        char* timestamp;
+        FilePointer<char> rootObjName;
+        FilePointer<char> rootColliderName;
+        FilePointer<char> timestamp;
     };
 
-    struct RawInfoSection
-    {
-        int version;
-        int objHeirarchyOffset;
-        int rootObjName;
-        int rootColliderName;
-        int timestamp;
-    };
-
-    struct RawObject
-    {
+    struct Object {
         struct SubData {
             u8 data[0x14];
         };
@@ -106,44 +114,26 @@ namespace SPMEditor::LevelInternal
         // If meshCount == 0 then the first material* and mesh* are 0
     };
 
-    struct RawVCDTable {
-        int vertexOffset;
-        int normalOffset;
+    struct VCDTable {
+        FilePointer<vec3<s16>> vertices;
+        FilePointer<vec3<s8>> normals;
         int unknown_1;
-        int colorOffset;
+        FilePointer<Color> colors;
         int unknown_2;
         int unknown_3;
-        int uvOffset;
+        FilePointer<vec2<s16>> uvs;
         int unknown_4[10];
         int vertexScale;
         int uvScale;
-
     };
 
-    struct VCDTable
-    {
-        int vertexCount;
-        int normalCount;
-        int colorCount;
-        int uvCount;
-        int unknown[13];
-        int vertexScale;
-        int uvScale;
-
-        vec3<short>* vertices;
-        Color* normals;
-        Color* colors;
-        vec2<u16>* uvs;
-    };
-
-    struct MaterialNameEntry // Used in material_name_table
-    {
+    // Used in material_name_table
+    struct MaterialNameEntry {
         int nameOffset; // pointer to name
         int materialOffset; // Pointer to Material
     };
 
-    struct Material
-    {
+    struct Material {
         struct Parameter {
             Vector2 unk_1;
             Vector2 value;
@@ -162,7 +152,7 @@ namespace SPMEditor::LevelInternal
         bool useTransparency;
         bool useTexture;
         int textureInfoPtr; // From my old notes. Idfk what this is
-        // The structure is 0x114 bytes long but idk what the rest of everything is atm so I'm just filling it with unknown floats (most of the values are floats)
+                            // The structure is 0x114 bytes long but idk what the rest of everything is atm so I'm just filling it with unknown floats (most of the values are floats)
         Parameter unk_param_1;
         Parameter uvScale;
         Parameter unk_param_3;
@@ -183,8 +173,7 @@ namespace SPMEditor::LevelInternal
             Clip = 1,
         };
 
-        struct Info
-        {
+        struct Info {
             u32 dataOffset;
             u32 unknown; // Padding?
             u8 wrapU; // NOTE: Same as TPL Image wrap mode but u8 instead of u32
@@ -244,26 +233,25 @@ namespace SPMEditor::LevelInternal
         u32 keyframeCount;
     };
 
-    class InternalMaterialAnimation { 
-        public:
-            struct Keyframe {
-                float startFrame;
-                PropertyCurve2D offset, scale;
-                float unknown[5];
-            };
+    struct InternalMaterialAnimation { 
+        struct Keyframe {
+            float startFrame;
+            PropertyCurve2D offset, scale;
+            float unknown[5];
+        };
 
-            int materialNameOffset;
-            float unknown[3];
-            int keyframeCount;
-            // Followed by
-            // Keyframe keyframes[keyframeCount];
+        int materialNameOffset;
+        float unknown[3];
+        int keyframeCount;
+
+        // Followed by
+        // Keyframe keyframes[keyframeCount];
     };
 
-    class MaterialAnimation {
-        public:
-            const char* animationName;
-            float unknown[3];
-            std::vector<InternalMaterialAnimation::Keyframe> keyframes;
+    struct MaterialAnimation {
+        FilePointer<const char> animationName;
+        float unknown[3];
+        std::vector<InternalMaterialAnimation::Keyframe> keyframes;
     };
 
     struct AnimationHeader {
@@ -276,7 +264,7 @@ namespace SPMEditor::LevelInternal
     };
 
     struct Animation {
-        const char* name;
+        FilePointer<char> name;
         float frameCount;
     };
 }

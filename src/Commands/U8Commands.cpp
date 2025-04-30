@@ -22,16 +22,15 @@ namespace SPMEditor {
         bool created_u8 = U8Archive::TryCreateFromDirectory(input, archive);
         Assert(created_u8, "Failed to create U8 archive from directory '%s'", input);
 
-        u32 archive_size = 0;
         std::vector<u8> data = archive.CompileU8();
 
         // Decompress the archive if needed
         if (strcmp(compressed, "1") == 0 || strcmp(compressed, "true") == 0) {
             // NOTE: this copies the archive_size to lzss_decompress_10 then overwrites it for the decompressed size
-            data = LZSS::DecompressBytes(data.data(), archive_size);
+            data = LZSS::CompressLzss10(data.data(), data.size());
         }
 
-        filesystem_write_file(output, data.data(), archive_size);
+        filesystem_write_file(output, data.data(), data.size());
     }
 
     void u8_command_extract(u32 argc, const char** argv) {

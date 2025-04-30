@@ -25,20 +25,20 @@ namespace SPMEditor {
         int stringSectionStart = sizeof(Header) + numNodes * sizeof(Node);
 
         Node dirNode = nodes[index++];
-        ByteSwap4(&dirNode, 2);
+        ByteSwap2(&dirNode, 2);
         ByteSwap4(&dirNode.dataOffset, 2);
 
         std::string name = (char*)(data + stringSectionStart + dirNode.nameOffset); 
         Directory dir;
         dir.name = name;
 
-        LogInfo("Reading virt directory '%s' with index '%d'", name.c_str(), index);
+        LogDebug("Reading virt directory '%s' with index '%d' (string section start: 0x%x, name offset: 0x%x)", name.c_str(), index, stringSectionStart, dirNode.nameOffset);
 
         while (index < dirNode.size)
         {
             // Get the current node and convert to little endian (thanks x86)
             Node node = nodes[index];
-            ByteSwap4(&node, 2);
+            ByteSwap2(&node, 2);
             ByteSwap4(&node.dataOffset, 2);
 
             // Read the node name
@@ -107,7 +107,7 @@ namespace SPMEditor {
         node.nameOffset = namePosition;
         node.size = dir.GetTotalNodeCount() + nodeIndex;
 
-        ByteSwap4(&node, 2);
+        ByteSwap2(&node, 2);
         ByteSwap4(&node.dataOffset, 2);
 
         strcpy((char*)(data + nameOffset + namePosition), dir.name.c_str());
@@ -122,7 +122,7 @@ namespace SPMEditor {
             fileNode.dataOffset = dataOffset;
             fileNode.nameOffset = namePosition;
             fileNode.size = file.size;
-            ByteSwap4(&fileNode, 2);
+            ByteSwap2(&fileNode, 2);
             ByteSwap4(&fileNode.dataOffset, 2);
 
             strcpy((char*)(data + nameOffset + namePosition), file.name.c_str());

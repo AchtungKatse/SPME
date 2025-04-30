@@ -2,9 +2,9 @@
 #include "FileTypes/LevelData.h"
 #include "FileTypes/TPL.h"
 #include "assimp/scene.h"
-#include "FileTypes/LevelGeometry/InternalMapFile.h"
+#include "FileTypes/LevelGeometry/MapStructures.h"
 
-using namespace SPMEditor::LevelInternal;
+using namespace SPMEditor::MapStructures;
 
 namespace SPMEditor {
     class LevelGeometry

@@ -116,7 +116,7 @@ inline u32 ByteSwap(u32 val) { return ByteSwap((int)val); }
 inline void ByteSwap4(void* data, int elementCount)
 {
     for (int i = 0; i < elementCount; i++) {
-        ((int*)data)[i] = ByteSwap(((int*)data)[i]);
+        ((u32*)data)[i] = ByteSwap(((u32*)data)[i]);
     }
 }
 

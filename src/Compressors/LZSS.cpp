@@ -2,11 +2,13 @@
 #include <cstring>
 
 namespace SPMEditor {
+    //Decompress LZSS-compressed bytes. Returns a bytearray.//
     std::vector<u8> LZSS::DecompressBytes(const u8* data, int length) {
-        //Decompress LZSS-compressed bytes. Returns a bytearray.//
+        Assert(data, "Cannot decompress null array. data = %p", data);
+
         u8 type = *data;
         u32 decompressedSize = *(u32*)data >> 8;
-        LogInfo("Decompressing lzss stream as type %x", type);
+        LogInfo("Decompressing lzss stream as type %x with length 0x%x and decompressed size 0x%x", type, length, decompressedSize);
 
         if (type == 0x10)
             return DecompressLzss10(data + 4, length, decompressedSize);
@@ -23,6 +25,7 @@ namespace SPMEditor {
     std::vector<u8> LZSS::DecompressLzss10(const u8* indata, int compressedSize, int decompressedSize) {
         // Setup data reading and writing
         std::vector<u8> output(decompressedSize);
+        output.resize(decompressedSize);
         int outPos = 0;
 
         // Define constants

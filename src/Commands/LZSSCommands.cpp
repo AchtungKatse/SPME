@@ -5,7 +5,7 @@
 
 namespace SPMEditor {
 
-    void lzss_command_compress(u32 argc, char** argv) {
+    void lzss_command_compress(u32 argc, const char** argv) {
         const char* input = argv[0];
         const char* output = argv[1];
 
@@ -16,7 +16,7 @@ namespace SPMEditor {
         filesystem_write_file(output, compressed_data.data(), file_handle.size);
     }
 
-    void lzss_command_decompress(u32 argc, char** argv) {
+    void lzss_command_decompress(u32 argc, const char** argv) {
         const char* input = argv[0];
         const char* output = argv[1];
 
@@ -24,9 +24,9 @@ namespace SPMEditor {
 
         FileHandle compressed = filesystem_read_file(input);
 
-        int decompressed_size = 0;
         std::vector<u8> decompressed = LZSS::DecompressBytes((u8*)compressed.data, compressed.size);
-        filesystem_write_file(output, decompressed.data(), decompressed_size);
+        LogInfo("Writing 0x%x bytes of decompressed data", decompressed.size());
+        filesystem_write_file(output, decompressed.data(), decompressed.size());
     }
 
 }
