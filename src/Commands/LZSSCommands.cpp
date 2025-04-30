@@ -1,43 +1,33 @@
 #include "Commands/LZSSCommands.h"
 #include "IO/FileHandle.h"
-#include "IO/FileReader.h"
+#include "core/Logging.h"
+#include "core/filesystem.h"
 #include "Compressors/LZSS.h"
-#include "IO/FileWriter.h"
 
 namespace SPMEditor {
-    const std::vector<Command*> LZSSCommands::sCommands = {
-        new Decompress(),
-        new Compress(),
-    };
 
-    const std::string& LZSSCommands::GetName() const {
-        static const std::string mName = "LZSS";
-        return mName;
+    void lzss_command_compress(u32 argc, char** argv) {
+        const char* input = argv[0];
+        const char* output = argv[1];
+
+        Assert(filesystem_exists(input), "File '%s' Does not exist.", input);
+
+        FileHandle file_handle = filesystem_read_file(input);
+        std::vector<u8> compressed_data = LZSS::CompressLzss10(file_handle.data, file_handle.size);
+        filesystem_write_file(output, compressed_data.data(), file_handle.size);
     }
 
-    const std::vector<Command*>& LZSSCommands::GetCommands() const {
-        return sCommands;
+    void lzss_command_decompress(u32 argc, char** argv) {
+        const char* input = argv[0];
+        const char* output = argv[1];
+
+        Assert(filesystem_exists(input), "File '%s' Does not exist.", input);
+
+        FileHandle compressed = filesystem_read_file(input);
+
+        int decompressed_size = 0;
+        std::vector<u8> decompressed = LZSS::DecompressBytes(compressed.data, compressed.size);
+        filesystem_write_file(output, decompressed.data(), decompressed_size);
     }
 
-    void LZSSCommands::Decompress::Run(char** argv) const {
-        const std::string& input = argv[0];
-        const std::string& output = argv[1];
-
-        Assert(std::filesystem::exists(input), "File '%s' Does not exist.", input.c_str());
-
-        const FileHandle& compressed = FileReader::ReadFileBytes(input);
-        const std::vector<u8> decompressed = LZSS::DecompressBytes(compressed.data, compressed.size);
-        FileWriter::WriteFile(output, decompressed);
-    }
-
-    void LZSSCommands::Compress::Run(char** argv) const {
-        const std::string& input = argv[0];
-        const std::string& output = argv[1];
-
-        Assert(std::filesystem::exists(input), "File '%s' Does not exist.", input.c_str());
-
-        FileHandle file = FileReader::ReadFileBytes(input);
-        const std::vector<u8> compressed = LZSS::CompressLzss10(file.data, file.size);
-        FileWriter::WriteFile(output, compressed);
-    }
 }

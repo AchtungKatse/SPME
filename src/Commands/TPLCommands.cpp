@@ -1,30 +1,19 @@
 #include "Commands/TPLCommands.h"
 #include "FileTypes/TPL.h"
-#include "Utility/str2int.h"
 #include "stb_image_write.h"
 #include <cstdio>
 #include <filesystem>
 
 namespace SPMEditor {
-    
-    void TPLCommands::Read(int& i, int argc, char** argv) {
+    void tpl_command_dump(u32 argc, const char** argv) {
+        const char* input_file = argv[0];
+        const char* output_directory = argv[1];
 
-        const char* command = argv[i++];
-        switch (str2int(command)) {
-            case str2int("dump"):
-                Assert(i <= argc - 2, "Invalid parameter count");
-                Dump(argv[i], argv[i + 1]);
-                i++;
-                break;
-        }
-    }
+        if (!std::filesystem::exists(output_directory))
+            std::filesystem::create_directory(output_directory);
 
-    void TPLCommands::Dump(const char* inputFile, const char* outputDirectory) {
-        if (!std::filesystem::exists(outputDirectory))
-            std::filesystem::create_directory(outputDirectory);
-
-        LogInfo("Dumping tpl '%s' to '%s'", inputFile, outputDirectory);
-        TPL tpl = TPL::LoadFromFile(inputFile);
+        LogInfo("Dumping tpl '%s' to '%s'", input_file, output_directory);
+        SPMEditor::TPL tpl = SPMEditor::TPL::LoadFromFile(input_file);
 
         for (size_t i = 0; i < tpl.images.size(); i++) {
             auto& image = tpl.images[i];
@@ -34,10 +23,10 @@ namespace SPMEditor {
             } else {
                 strcpy(finalName, image.name.c_str());
             }
-            LogInfo("Writing image '%s/%s.png'", outputDirectory, finalName);
+            LogInfo("Writing image '%s/%s.png'", output_directory, finalName);
 
             char path[0x300] = {};
-            snprintf(path, sizeof(path), "%s/%s.png", outputDirectory, finalName);
+            snprintf(path, sizeof(path), "%s/%s.png", output_directory, finalName);
             stbi_write_png(path, (int)image.header.width, (int)image.header.height, 4, image.pixels.data(), image.header.width * 4);
         }
     }

@@ -1,7 +1,7 @@
 #include "FileTypes/LevelGeometry/LevelGeometry.h"
 #include "FileTypes/LevelGeometry/InternalMapFile.h"
 #include "Types/Types.h"
-#include "Utility/Logging.h"
+#include "core/Logging.h"
 #include "IO/FileWriter.h"
 #include "assimp/anim.h"
 #include "assimp/matrix4x4.h"

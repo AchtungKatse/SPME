@@ -2,7 +2,7 @@
 #include "FileTypes/LevelGeometry/InternalMapFile.h"
 #include "FileTypes/TPL.h"
 #include "Types/Types.h"
-#include "Utility/Logging.h"
+#include "core/Logging.h"
 #include "assimp/material.h"
 #include "assimp/types.h"
 #include "assimp/vector3.h"

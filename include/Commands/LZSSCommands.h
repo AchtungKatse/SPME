@@ -3,28 +3,8 @@
 #include "Commands/CommandType.h"
 namespace SPMEditor {
 
-    class LZSSCommands : public CommandGroup {
-        public:
-            class Decompress : public Command {
-                public:
-                    const std::string& GetName() const override { static const std::string mName = "Decompress"; return mName; }
-                    const std::string& GetFormat() const override { static const std::string mFormat = "[Input File] [Output File]"; return mFormat; }
-                    int GetParameterCount() const override { return 2; }
-                    void Run(char** argv) const override;
-            };
+    void lzss_command_decompress(u32 argc, char** argv);
+    void lzss_command_compress(u32 argc, char** argv);
 
-            class Compress : public Command {
-                public:
-                    const std::string& GetName() const override { static const std::string mName = "Compress"; return mName; }
-                    const std::string& GetFormat() const override { static const std::string mFormat = "[Input File] [Output File]"; return mFormat; }
-                    int GetParameterCount() const override { return 2; }
-                    void Run(char** argv) const override;
-            };
-
-            const std::string& GetName() const override;
-            const std::vector<Command*>& GetCommands() const override;
-
-        private:
-            const static std::vector<Command*> sCommands;
-    };
 }
+

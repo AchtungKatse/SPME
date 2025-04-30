@@ -6,5 +6,5 @@
 #include <filesystem>
 #include <glad/glad.h>
 
-#include "Utility/Logging.h"
-#include "Utility/str2int.h"
+#include "core/Logging.h"
+#include "core/str2int.h"
