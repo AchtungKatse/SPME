@@ -13,3 +13,6 @@
 [submodule "dependencies/glm"]
 	path = dependencies/glm
 	url = https://github.com/icaven/glm.git
+[submodule "dependencies/yaml-cpp"]
+	path = dependencies/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git

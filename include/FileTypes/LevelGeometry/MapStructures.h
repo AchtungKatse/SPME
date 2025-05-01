@@ -173,11 +173,17 @@ namespace SPMEditor::MapStructures
             Clip = 1,
         };
 
+        enum class WrapMode : u8 {
+            Clamp = 0,
+            Repeat = 1,
+            Mirror = 2,
+        };
+
         struct Info {
             u32 dataOffset;
             u32 unknown; // Padding?
-            u8 wrapU; // NOTE: Same as TPL Image wrap mode but u8 instead of u32
-            u8 wrapV;
+            WrapMode wrapU; 
+            WrapMode wrapV;
             u8 unk_3;
             u8 unk_4;
         };

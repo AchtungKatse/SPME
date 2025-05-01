@@ -1,5 +1,6 @@
 #include "FileTypes/LevelGeometry/GeometryExporter.h"
 #include "FileTypes/LevelGeometry/MapStructures.h"
+#include "FileTypes/MapConfig.h"
 #include "FileTypes/TPL.h"
 #include "Types/Types.h"
 #include "core/Logging.h"
@@ -29,16 +30,10 @@ namespace SPMEditor {
 
     GeometryExporter::Section::Section(const char* name, int offset) : name(name), offset(offset) { }
 
-    void GeometryExporter::Write(const aiScene* scene, const std::string& path) {
+    void GeometryExporter::Write(const aiScene* scene, const MapConfig config, const std::string& path) {
         mScene = scene;
+        mMapConfig = config;
 
-        // For whatever reason, blender's gltf export results in all images having the name "Image-Image" which seems to confuse SPM
-        // HACK: the fix for this is just going to be to append image indices to their names
-        // NOTE: This doesn't seem to actually affect the textures used since materials reference it via an ImageInfo*
-        for (size_t i = 0; i < scene->mNumTextures; i++) {
-            scene->mTextures[i]->mFilename.Append("_index_");
-            scene->mTextures[i]->mFilename.Append(std::to_string(i).c_str());
-        }
 
         // Write the scene images as a TPL
         WriteTPL();
@@ -151,20 +146,16 @@ namespace SPMEditor {
                 mapTexture.width = texture->mWidth;
                 mapTexture.height = texture->mHeight;
             } else {
+                // Run stbi_load_from_memory to get real image dimensions
                 int channels = 0;
                 Color* colors = (Color*)stbi_load_from_memory((u8*)texture->pcData, texture->mWidth, (int*)&mapTexture.width, (int*)&mapTexture.height, &channels, 0);
-
-                // Determin transparency type
-                if (channels == 4) {
-                    for (int i = 0; i < mapTexture.width * mapTexture.height; i++) {
-                        // TODO: Research other transparency modes
-                        if (colors[i].a != 0xFF) {
-                            mapTexture.transparency = MapTexture::TransparencyType::Clip;
-                        }
-                    }
-                }
+                stbi_image_free(colors);
 
             }
+            // TODO: Research other transparency modes
+            TextureConfig config = GetTextureConfig(i);
+            mapTexture.transparency = (config.mUseTransparency ? MapTexture::TransparencyType::Clip : MapTexture::TransparencyType::Opaque);
+
             mTextureNameTable.emplace_back(mapTexture.nameOffset);
             mTextureNameToIndex.emplace(texture->mFilename.C_Str(), mTextureNameToIndex.size());
             LogInfo("Adding texture name '%s' at index %u", texture->mFilename.C_Str(), mTextureNameToIndex.size());
@@ -182,12 +173,11 @@ namespace SPMEditor {
 
         // Write information
         for (size_t i = 0; i < mScene->mNumTextures; i++) {
+            TextureConfig config = GetTextureConfig(i);
             AppendPointer(0x14 + i * sizeof(MapTexture));
             AppendInt32(0); // padding
-            // TODO: The following u8's are wrap mode,
-            // This defaults them to repeat but should be user configurable
-            AppendInt8(1);
-            AppendInt8(1);
+            AppendInt8((u8)config.mWrapModeU);
+            AppendInt8((u8)config.mWrapModeV);
             AppendInt8(0);
             AppendInt8(0);
         }
@@ -320,6 +310,9 @@ namespace SPMEditor {
             int nameAddress = mStringTable[material->GetName().C_Str()];
             mMaterialTable.emplace_back(MaterialNameEntry{.nameOffset = nameAddress, .materialOffset = address});
 
+            // Get the config
+            MaterialConfig config = GetMaterialConfig(i);
+
             aiVector3D materialColor(1);
             float opacity = 0;
             if (AI_SUCCESS != material->Get(AI_MATKEY_BASE_COLOR, materialColor)) LogWarn("Failed to get diffuse color from material '%s'", material->GetName().C_Str());
@@ -331,11 +324,10 @@ namespace SPMEditor {
             /*AppendUInt8((u8)((1 - opacity) * 255));*/
             AppendUInt8(255);
 
-            // TODO: Allow user to configure materials
-            u8 useVertexColors = 1;
+
+            u8 useVertexColors = config.mUseVertexColor;
             u8 unk_1 = 1;
-            // TODO: Transparency will be disabled until configuration is implemented because it results in non-transparent objects being culled.
-            u8 useTransparency = 0;
+            u8 useTransparency = config.mUseTransparency;
             u8 useTexture = material->GetTextureCount(aiTextureType_DIFFUSE) > 0;
             AppendUInt8(useVertexColors);
             AppendUInt8(unk_1);
@@ -352,7 +344,6 @@ namespace SPMEditor {
                 } else if (path->C_Str()[0] == '*') {
                     // Check if texture name is assimp using an image index
                     int imageIndex = std::stoi(path->C_Str() + 1);
-                    LogTrace("\tUsing texture index: %d", imageIndex);
                     textureInfoPtr += imageIndex * sizeof(MapTexture::Info);
 
                 }
@@ -522,7 +513,6 @@ namespace SPMEditor {
 
         }
 
-        LogTrace("Wrting %u meshes", node->mNumMeshes);
         AppendInt32(node->mNumMeshes);
 
         // Add filler for no reason, might try to remove this later
@@ -686,7 +676,6 @@ namespace SPMEditor {
 
         int fileOffset = AppendPointer(offset);
         mStringPointers.emplace_back(fileOffset);
-        LogTrace("Writing text '%s' at %d (string offset: %d)", text, fileOffset, offset);
 
         return fileOffset;
     }
@@ -744,5 +733,48 @@ namespace SPMEditor {
 
         mFileSize += remaining;
         return mFileSize;
+    }
+
+    template<typename ConfigType, typename AssimpType>
+        ConfigType GetConfig(u32 index, std::vector<ConfigType> configList, AssimpType** assimpTypes, const char* (*getName)(AssimpType* value)) {
+            // Get the config
+            // Default to blank config
+            ConfigType config; 
+
+            // If there are enough configs for this texture, then use that index
+            if (index < configList.size()) {
+                config = configList[index];
+            }
+
+            // Check if names don't match
+            AssimpType* texture = assimpTypes[index];
+            if (config.mName != getName(texture)) {
+                LogWarn("Writing texture '%d' and config at same index does not have same name. Expected '%s', got '%s'. Searching for matching texture names.", index, config.mName.c_str(), getName(texture));
+                // Try to find correct file
+                bool foundMatchingTextureName = false;
+                for (size_t i = 0; i < configList.size(); i++) {
+                    if (configList[i].mName == getName(texture)) {
+                        foundMatchingTextureName = true;
+                        config = configList[i];
+                        break;
+                    }
+                }
+
+                if (!foundMatchingTextureName) {
+                    LogWarn("Failed to find texture config with matching texture name. Defaulting to using the same index for the config and texture.");
+                }
+            }
+
+            return config;
+        }
+
+    const char* TextureGetName(aiTexture* texture) { return texture->mFilename.C_Str(); }
+    TextureConfig GeometryExporter::GetTextureConfig(u32 textureIndex) {
+        return GetConfig<TextureConfig, aiTexture>(textureIndex, mMapConfig.mTextureConfigs, mScene->mTextures, TextureGetName);
+    }
+
+    const char* MaterialGetName(aiMaterial* mat) { return mat->GetName().C_Str(); }
+    MaterialConfig GeometryExporter::GetMaterialConfig(u32 materialIndex) {
+        return GetConfig<MaterialConfig, aiMaterial>(materialIndex, mMapConfig.mMaterialConfigs, mScene->mMaterials, MaterialGetName);
     }
 }

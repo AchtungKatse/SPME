@@ -508,7 +508,7 @@ namespace SPMEditor {
             channel->mScalingKeys  = new aiVectorKey[internalAnimation.keyframeCount];
             channel->mRotationKeys = new aiQuatKey[internalAnimation.keyframeCount];
 
-            LogTrace("\tObject '%s' has %d frames (0x%x). Base Position: (%f, %f, %f), Base Rotation: (%f, %f, %f), Base Scale: (%f, %f, %f)", channel->mNodeName.C_Str(), internalAnimation.keyframeCount, animPointer,
+            LogDebug("\tObject '%s' has %d frames (0x%x). Base Position: (%f, %f, %f), Base Rotation: (%f, %f, %f), Base Scale: (%f, %f, %f)", channel->mNodeName.C_Str(), internalAnimation.keyframeCount, animPointer,
                     internalAnimation.basePosition.x,
                     internalAnimation.basePosition.y,
                     internalAnimation.basePosition.z,
@@ -524,7 +524,7 @@ namespace SPMEditor {
             Assert(node != nullptr, "Failed to find node '%s'", channel->mNodeName.C_Str());
             aiVector3D nodeScale, nodePosition, nodeRotation;
             node->mTransformation.Decompose(nodeScale, nodeRotation, nodePosition);
-            LogTrace("\tPosition: (%f, %f, %f), Rotation: (%f, %f, %f), Scale: (%f, %f, %f)", nodePosition.x, nodePosition.y, nodePosition.z, nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeScale.x, nodeScale.y, nodeScale.z);
+            LogDebug("\tPosition: (%f, %f, %f), Rotation: (%f, %f, %f), Scale: (%f, %f, %f)", nodePosition.x, nodePosition.y, nodePosition.z, nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeScale.x, nodeScale.y, nodeScale.z);
 
             TransformAnimation::Keyframe startingKey = keyframes[0];
             ByteSwap4(&startingKey, sizeof(TransformAnimation::Keyframe) / 4);
@@ -539,7 +539,7 @@ namespace SPMEditor {
                 aiVector3D scale = aiVector3D(keyframe.scale.x.start, keyframe.scale.y.start, keyframe.scale.z.start);
                 aiVector3D euler = aiVector3D(keyframe.rotation.x.start, keyframe.rotation.y.start, keyframe.rotation.z.start); 
 
-                LogTrace("\t\tKeyframe %d. Time: %f, Local Position: (%f, %f, %f) Local Rotation: (%f, %f, %f), Local Scale: (%f, %f, %f)", key, keyframe.startFrame, 
+                LogDebug("\t\tKeyframe %d. Time: %f, Local Position: (%f, %f, %f) Local Rotation: (%f, %f, %f), Local Scale: (%f, %f, %f)", key, keyframe.startFrame, 
                         pos.x, pos.y, pos.z,
                         euler.x, euler.y, euler.z,
                         scale.x, scale.y, scale.z);
@@ -548,7 +548,7 @@ namespace SPMEditor {
                 euler /= 180.0f;
                 euler *= PI;
 
-                LogTrace("\t\t\t\t\t\tPosition: (%f, %f, %f) Rotation: (%f, %f, %f), Scale: (%f, %f, %f)", 
+                LogDebug("\t\t\t\t\t\tPosition: (%f, %f, %f) Rotation: (%f, %f, %f), Scale: (%f, %f, %f)", 
                         pos.x, pos.y, pos.z,
                         euler.x, euler.y, euler.z,
                         scale.x, scale.y, scale.z);
@@ -657,7 +657,7 @@ namespace SPMEditor {
 
     void LevelGeometry::ReadCurveTable(int offset) {
         int curveCount = *(int*)(sData + offset);
-        LogTrace("----------------------------------------------------- Curve table has 0x%x entries -----------------------------------------------------", curveCount);
+        LogDebug("----------------------------------------------------- Curve table has 0x%x entries -----------------------------------------------------", curveCount);
         Assert(curveCount == 0, "Curve count is not zero: 0x%x", curveCount);
     }
 }

@@ -44,11 +44,17 @@ command_t map_commands[] = {
         .run = map_command_to_fbx,
     }, {
         .name = "from_glb",
-        .format = "<map.glb> <output_file>",
+        .format = "<map.glb> <config.yaml path> <output_file>",
         .description = "Converts a glb model to a SPM map.dat file. Note, this only changes the map.dat from a u8 extracted map file at [map_name]/dvd/map/[map_name]/map.dat. Please run u8 compile to create a spm map.bin to reinsert into the game files.",
-        .parameter_count = 2,
+        .parameter_count = 3,
         .run = map_command_from_glb,
-    },
+    },  {
+        .name = "create_config",
+        .format = "<map.glb> <output path>",
+        .description = "Creates a map config from an existing model",
+        .parameter_count = 2,
+        .run = map_command_create_config,
+    }, 
 };
 
 command_t tpl_commands[] = {

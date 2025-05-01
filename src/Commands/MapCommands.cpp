@@ -28,15 +28,29 @@ namespace SPMEditor {
 
     void map_command_from_glb(u32 argc, const char** argv) {
         const char* input = argv[0];
-        const char* output = argv[1];
+        const char* configPath = argv[1];
+        const char* output = argv[2];
         Assert(std::filesystem::exists(input), "Export Failed. Map directory '%s' does not exist", input);
+        Assert(std::filesystem::exists(configPath), "Export Failed. Cannot find config at path '%s'", configPath);
         Assert(std::filesystem::is_regular_file(input), "Export Failed. Map directory '%s' is not a regular file.", input);
+        Assert(std::filesystem::is_regular_file(configPath), "Export Failed. Config '%s' is not a regular file.", input);
+
+        MapConfig config = MapConfig::LoadFromFile(configPath);
 
         GeometryExporter* exporter = GeometryExporter::Create();
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(input, aiPostProcessSteps::aiProcess_Triangulate | aiProcess_FlipWindingOrder | aiPostProcessSteps::aiProcess_EmbedTextures | aiPostProcessSteps::aiProcess_ValidateDataStructure | aiPostProcessSteps::aiProcess_FindInvalidData | aiPostProcessSteps::aiProcess_ForceGenNormals | aiProcess_JoinIdenticalVertices | aiProcess_GenUVCoords);
         Assert(scene, "Export failed. Assimp failed to load scene '%s'. Supported formats are GLB, GLTF, and FBX.", input);
-        exporter->Write(scene, output);
+        exporter->Write(scene, config, output);
+    }
+
+    void map_command_create_config(u32 argc, const char** argv) {
+        const char* modelPath = argv[0];
+        const char* configPath = argv[1];
+        Assert(std::filesystem::exists(modelPath), "Failed to create map config. Map directory '%s' does not exist", modelPath);
+        Assert(std::filesystem::is_regular_file(modelPath), "Failed to create map config. Map directory '%s' is not a regular file.", modelPath);
+
+        MapConfig::CreateFromModel(modelPath, configPath);
     }
 }
 

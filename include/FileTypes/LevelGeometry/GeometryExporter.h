@@ -1,5 +1,6 @@
 #pragma once
 #include "FileTypes/LevelGeometry/MapStructures.h"
+#include "FileTypes/MapConfig.h"
 #include "assimp/scene.h"
 #include <map>
 #include <vector>
@@ -14,7 +15,7 @@ namespace SPMEditor {
             ~GeometryExporter();
 
             static GeometryExporter* Create();
-            void Write(const aiScene* scene, const std::string& path);
+            void Write(const aiScene* scene, const MapConfig config, const std::string& path);
 
         private:
             struct Section {
@@ -96,6 +97,9 @@ namespace SPMEditor {
             int AddPadding(int interval);
             void AddPointer(const s32 address);
 
+            TextureConfig GetTextureConfig(u32 textureIndex);
+            MaterialConfig GetMaterialConfig(u32 materialIndex);
+
             const aiScene* mScene;
 
             u8* mData;
@@ -105,6 +109,9 @@ namespace SPMEditor {
 
             int mVCDAddress;
             int mRootObjectPtr;
+            
+            MapConfig mMapConfig;
+
             MapStructures::VCDTable mVCDTable;
 
             std::vector<int> mStringPointers;

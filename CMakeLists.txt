@@ -8,7 +8,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2 -s -ffunction-sections -fdata-sections -Wl,--gc
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 OPTION(BUILD_TESTS OFF)
-OPTION(NO_BUILD_DISPLAY OFF)
 
 # ASSIMP
 SET(ASSIMP_BUILD_TESTS OFF)
@@ -35,15 +34,14 @@ file(GLOB_RECURSE SOURCE_FILES
 )
 
 add_subdirectory(dependencies/assimp)
+add_subdirectory(dependencies/yaml-cpp)
 
 set(INCLUDE_LIBRARIES assimp)
-if (NOT ${NO_BUILD_DISPLAY})
-    add_library(glad ${CMAKE_SOURCE_DIR}/dependencies/glad/src/glad.c)
-    target_include_directories(glad PRIVATE "${CMAKE_SOURCE_DIR}/dependencies/glad/include")
-    add_subdirectory(dependencies/glfw)
-    set(INCLUDE_LIBRARIES ${INCLUDE_LIBRARIES} glad glfw)
-    message("Building display")
-endif()
+add_library(glad ${CMAKE_SOURCE_DIR}/dependencies/glad/src/glad.c)
+target_include_directories(glad PRIVATE "${CMAKE_SOURCE_DIR}/dependencies/glad/include")
+add_subdirectory(dependencies/glfw)
+set(INCLUDE_LIBRARIES ${INCLUDE_LIBRARIES} glad glfw yaml-cpp)
+message("Building display")
 
 # Define the link libraries
 message("Compiling with flags '${CMAKE_CXX_FLAGS}'")
@@ -58,6 +56,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/dependencies/stb"
     "${CMAKE_SOURCE_DIR}/dependencies/glm"
     "${CMAKE_SOURCE_DIR}/dependencies/fpng/src" # please separate your source and include folders
+    "${CMAKE_SOURCE_DIR}/dependencies/yaml-cpp/include"
 )
 
 if (MSVC OR WINDOWS_BUILD)
@@ -72,9 +71,6 @@ else()
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${INCLUDE_LIBRARIES})
-if (${NO_BUILD_DISPLAY})
-    target_compile_definitions(${PROJECT_NAME} PRIVATE NO_BUILD_DISPLAY)
-endif()
 
 if (${BUILD_TESTS})
     message("Building tests")
