@@ -215,25 +215,25 @@ namespace SPMEditor {
         AddPadding(0x20);
 
         LogInfo("Writing 0x%x vertices", mVertexTable.size());
-        mVCDTable.vertices = AppendInt32(mVertexTable.size());
+        mVCDTable.vertices = AppendInt32(mVertexTable.size()) + 4;
         mFileSize += mVertexTable.size() * 6;
         u32 _vertexScale = 1 << vertexScale;
         for (const auto pair : mVertexTable) {
             const auto v = pair.first;
             int vertexIndex = pair.second;
-            vec3<s16>* vertex = &mVCDTable.vertices.Get(mData)[vertexIndex];
+            vec3<s16>* vertex = &mVCDTable.vertices.Get(mData + 0x20)[vertexIndex];
             vertex->x = ByteSwap((s16)(v.x * _vertexScale));
             vertex->y = ByteSwap((s16)(v.y * _vertexScale));
             vertex->z = ByteSwap((s16)(v.z * _vertexScale));
         }
 
         AddPadding(0x20);
-        mVCDTable.colors = AppendInt32(mColorTable.size());
+        mVCDTable.colors = AppendInt32(mColorTable.size()) + 4;
         mFileSize += mColorTable.size() * 4;
         for (const auto pair : mColorTable) {
             const auto color = pair.first;
             int index = pair.second;
-            Color* outColor = &mVCDTable.colors.Get(mData)[index];
+            Color* outColor = &mVCDTable.colors.Get(mData + 0x20)[index];
             outColor->r = ByteSwap((u8)(color.r * 255));
             outColor->g = ByteSwap((u8)(color.r * 255));
             outColor->b = ByteSwap((u8)(color.r * 255));
@@ -241,24 +241,24 @@ namespace SPMEditor {
         }
 
         AddPadding(0x20);
-        mVCDTable.uvs = AppendInt32(mUvTable.size());
+        mVCDTable.uvs = AppendInt32(mUvTable.size()) + 4;
         mFileSize += mUvTable.size() * 4;
         u32 _uvScale = 1 << uvScale;
         for (const auto pair : mUvTable) {
             const auto uv = pair.first;
             int index = pair.second;
-            vec2<s16>* outUV = &mVCDTable.uvs.Get(mData)[index];
+            vec2<s16>* outUV = &mVCDTable.uvs.Get(mData + 0x20)[index];
             outUV->x = ByteSwap((s16)(uv.x * _uvScale));
             outUV->y = ByteSwap((s16)((1.0f - uv.y) * _uvScale)); // 1.0f - uv.y fixes textures from being upside down
         }
 
         AddPadding(0x20);
-        mVCDTable.normals = AppendInt32(mNormalTable.size());
+        mVCDTable.normals = AppendInt32(mNormalTable.size()) + 4;
         LogInfo("Writing %u normals.", mNormalTable.size());
         for (const auto pair : mNormalTable) {
             const auto normal = pair.first;
             int index = pair.second;
-            vec3<s8>* outNormal = &mVCDTable.normals.Get(mData)[index];
+            vec3<s8>* outNormal = &mVCDTable.normals.Get(mData + 0x20)[index];
             outNormal->x = ByteSwap((u8)(normal.x * 64));
             outNormal->y = ByteSwap((u8)(normal.y * 64));
             outNormal->z = ByteSwap((u8)(normal.z * 64));
@@ -575,13 +575,13 @@ namespace SPMEditor {
     }
 
     void GeometryExporter::WriteVCDTable() {
-        mVCDAddress = AppendPointer(mVCDTable.vertices.address);
-        AppendPointer(mVCDTable.normals.address);
+        mVCDAddress = AppendPointer(mVCDTable.vertices.address - 4);
+        AppendPointer(mVCDTable.normals.address - 4);
         AppendInt32(0);
-        AppendPointer(mVCDTable.colors.address);
+        AppendPointer(mVCDTable.colors.address - 4);
         AppendInt32(mVCDTable.unknown_2);
         AppendInt32(mVCDTable.unknown_3);
-        AppendPointer(mVCDTable.uvs.address);
+        AppendPointer(mVCDTable.uvs.address - 4);
         AppendBuffer(mVCDTable.unknown_4, sizeof(mVCDTable.unknown_4));
         AppendInt32(mVCDTable.vertexScale);
         AppendInt32(mVCDTable.uvScale);
