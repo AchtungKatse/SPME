@@ -42,6 +42,10 @@ namespace SPMEditor {
                 vertexBuffer[i].color.x = mesh->mColors[0][i].r;
                 vertexBuffer[i].color.y = mesh->mColors[0][i].g;
                 vertexBuffer[i].color.z = mesh->mColors[0][i].b;
+            } else {
+                vertexBuffer[i].color.x = 1;
+                vertexBuffer[i].color.y = 1;
+                vertexBuffer[i].color.z = 1;
             }
             if (mesh->HasTextureCoords(0)) {
                 vertexBuffer[i].uv.x = mesh->mTextureCoords[0][i].x;
@@ -51,15 +55,15 @@ namespace SPMEditor {
         }
 
         // Position
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (const void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)0);
         glEnableVertexAttribArray(0);
 
         // Normal
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (const void*)12);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)12);
         glEnableVertexAttribArray(1);
 
         // UV 
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (const void*)24);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)24);
         glEnableVertexAttribArray(2);
 
         // Color
