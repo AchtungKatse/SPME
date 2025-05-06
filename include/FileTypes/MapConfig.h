@@ -34,7 +34,7 @@ namespace SPMEditor {
          * @param modelPath The path to the model
          * @param outputPath The path to write the output yaml config
          */
-        static void CreateFromModel(const char* modelPath, const char* outputPath);
+        static void CreateFromModel(const char* mapName, const char* modelPath, const char* outputPath);
         // NOTE: UpdateFromModel removed for the above reason (Image names causing issues)
         /**
          * @brief Updates a config from an existing model (i.e. he1_01.glb)

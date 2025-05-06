@@ -45,12 +45,13 @@ namespace SPMEditor {
     }
 
     void map_command_create_config(u32 argc, const char** argv) {
-        const char* modelPath = argv[0];
-        const char* configPath = argv[1];
+        const char* mapName = argv[0];
+        const char* modelPath = argv[1];
+        const char* configPath = argv[2];
         Assert(std::filesystem::exists(modelPath), "Failed to create map config. Map directory '%s' does not exist", modelPath);
         Assert(std::filesystem::is_regular_file(modelPath), "Failed to create map config. Map directory '%s' is not a regular file.", modelPath);
 
-        MapConfig::CreateFromModel(modelPath, configPath);
+        MapConfig::CreateFromModel(mapName, modelPath, configPath);
     }
 }
 

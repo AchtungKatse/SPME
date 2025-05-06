@@ -103,11 +103,11 @@ namespace SPMEditor {
         return config;
     }
 
-    void WriteMapConfigToFile(const MapConfig* config, const char* outFile) {
+    void WriteMapConfigToFile(const char* mapName, const MapConfig* config, const char* outFile) {
         YAML::Node node;
         node["TextureConfigs"] = config->mTextureConfigs;
         node["MaterialConfigs"] = config->mMaterialConfigs;
-        node["MapName"] = config->mMapName;
+        node["MapName"] = mapName;
 
         std::ofstream outputStream(outFile);
         outputStream << node;

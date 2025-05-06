@@ -50,9 +50,9 @@ command_t map_commands[] = {
         .run = map_command_from_glb,
     },  {
         .name = "create_config",
-        .format = "<map.glb> <output path>",
+        .format = "<map name> <map.glb> <output path>",
         .description = "Creates a map config from an existing model",
-        .parameter_count = 2,
+        .parameter_count = 3,
         .run = map_command_create_config,
     }, 
 };
