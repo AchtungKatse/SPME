@@ -71,6 +71,7 @@ Arguments in square brackets are \[optional] while arguments in brackets are \<r
 ### Extracting Map Data
 2. Select a map to modify and run "./SPME u8 extract <map file> <output directory> true".
     - E.x. "./SPME u8 extract he1_01.bin he1_01 true"
+    - Map IDs can be found [here](https://docs.google.com/document/d/10w4CS5oNBOHHYtM9OrNUYM7GIqNxIaR-b_Sr8FSG7Pk/)
 3. Convert the map to an FBX by running "./SPME map to_fbx <map.dat> <output file> \[(optionally) map name\]"
     - E.x. "./SPME map to_fbx he1_01.bin he1_01.fbx \[he1_01]"
     - If you did not name the output directory in step 1 to the same name as the map file (i.e. he1_01.bin -> he1_01), you may need to specify it at the end of the above command.
