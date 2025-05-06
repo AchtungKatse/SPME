@@ -77,7 +77,7 @@ namespace SPMEditor {
             LogDebug("Writing material config: '%s'", mat->GetName().C_Str());
             materialConfigs.emplace_back((MaterialConfig) {
                     .mName = mat->GetName().C_Str(),
-                    .mUseTransparency = false,
+                    .mUseTransparency = true,
                     .mUseVertexColor = true,
                     });
         }
