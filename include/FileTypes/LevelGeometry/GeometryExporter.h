@@ -15,7 +15,7 @@ namespace SPMEditor {
             ~GeometryExporter();
 
             static GeometryExporter* Create();
-            void Write(const aiScene* scene, const MapConfig config, const std::string& path);
+            void Write(const aiScene* scene, const MapConfig config, const std::string& outputFolder);
 
         private:
             struct Section {
@@ -57,7 +57,7 @@ namespace SPMEditor {
             void WriteTextureTable();
             void WriteAnimationTable();
             void WriteFatPointers();
-            void WriteTPL();
+            void WriteTPL(const char* outputPath);
 
             // VCD Table
             void WriteVertexData(u8 vertexScale = 8, u8 uvScale = 8);

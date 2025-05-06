@@ -30,15 +30,31 @@ namespace SPMEditor {
 
     GeometryExporter::Section::Section(const char* name, int offset) : name(name), offset(offset) { }
 
-    void GeometryExporter::Write(const aiScene* scene, const MapConfig config, const std::string& path) {
+    void GeometryExporter::Write(const aiScene* scene, const MapConfig config, const std::string& outputDirectory) {
         mScene = scene;
         mMapConfig = config;
+        
+        // Create paths for output files
+        char outputMapPath[1024];
+        char outputTplPath[1024];
+
+        snprintf(outputMapPath, sizeof(outputMapPath), "%s/dvd/map/%s/map.dat", outputDirectory.c_str(), config.mMapName.c_str());
+        snprintf(outputTplPath, sizeof(outputTplPath), "%s/dvd/map/%s/texture.tpl", outputDirectory.c_str(), config.mMapName.c_str());
+
+        // For whatever reason, blender's gltf export results in all images having the name "Image-Image" which seems to confuse SPM
+        // HACK: the fix for this is just going to be to append image indices to their names
+        // NOTE: This doesn't seem to actually affect the textures used since materials reference it via an ImageInfo*
+        for (size_t i = 0; i < scene->mNumTextures; i++) {
+            scene->mTextures[i]->mFilename.Append("_index_");
+            scene->mTextures[i]->mFilename.Append(std::to_string(i).c_str());
+        }
 
 
         // Write the scene images as a TPL
-        WriteTPL();
+        LogWarn("Writing tpl to '%s'", outputTplPath);
+        WriteTPL(outputTplPath);
 
-        std::ofstream output(path);
+        std::ofstream output(outputMapPath);
 
         mFileSize = 0;
         mTextBufferSize = 0;
@@ -351,7 +367,7 @@ namespace SPMEditor {
                     LogWarn("Texture Name To Index table does not have texture '%s'. Using first texture.", path->C_Str());
                     textureInfoPtr += sizeof(MapTexture) * (i % mScene->mNumTextures);
                 }
-                LogInfo("Material texture path '%s' has index of %d and offset of %p", path->C_Str(), mTextureNameToIndex[path->C_Str()], textureInfoPtr);
+                LogDebug("Material texture path '%s' has index of %d and offset of %p", path->C_Str(), mTextureNameToIndex[path->C_Str()], textureInfoPtr);
                 AppendPointer(textureInfoPtr);
             } else {
                 AppendInt32(0);
@@ -498,8 +514,35 @@ namespace SPMEditor {
         AppendVector3(rotation * 180.0f / (float)std::numbers::pi);
         AppendVector3(position);
 
-        aiVector3D boundsMin(0);
-        aiVector3D boundsMax(1);
+        // Calculate mesh bounds
+        aiVector3D boundsMin(10000000000000.0f);
+        aiVector3D boundsMax(-1000000000000.0f);
+        for (uint i = 0; i < node->mNumMeshes; i++) {
+            const auto mesh = mScene->mMeshes[node->mMeshes[0]];
+            for (uint v = 0; v < mesh->mNumVertices; v++) {
+                auto vert = mesh->mVertices[v];
+
+                if (vert.x < boundsMin.x) {
+                    boundsMin.x = vert.x;
+                }
+                if (vert.y < boundsMin.y) {
+                    boundsMin.y = vert.y;
+                }
+                if (vert.z < boundsMin.z) {
+                    boundsMin.z = vert.z;
+                }
+
+                if (vert.x > boundsMax.x) {
+                    boundsMax.x = vert.x;
+                }
+                if (vert.y > boundsMax.y) {
+                    boundsMax.y = vert.y;
+                }
+                if (vert.z > boundsMax.z) {
+                    boundsMax.z = vert.z;
+                }
+            }
+        }
         AppendVector3(boundsMin);
         AppendVector3(boundsMax);
 
@@ -632,7 +675,7 @@ namespace SPMEditor {
         mSections.emplace_back(Section("animation_table", address));
     }
 
-    void GeometryExporter::WriteTPL() {
+    void GeometryExporter::WriteTPL(const char* outputPath) {
         constexpr u32 MAX_TEXTURE_COUNT = 1024;
         TPLImageCreateInfo imageCreateInfos[MAX_TEXTURE_COUNT];
         for (size_t i = 0; i < mScene->mNumTextures; i++) {
@@ -646,7 +689,7 @@ namespace SPMEditor {
         };
 
         TPL tpl = TPL::CreateTPL(createInfo);
-        tpl.Write("test.tpl");
+        tpl.Write(outputPath);
     }
 
     int GeometryExporter::AppendBuffer(void* buffer, int size) {

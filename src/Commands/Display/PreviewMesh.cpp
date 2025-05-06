@@ -59,16 +59,16 @@ namespace SPMEditor {
         glEnableVertexAttribArray(0);
 
         // Normal
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)12);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, sizeof(Vertex), (const void*)12);
         glEnableVertexAttribArray(1);
 
-        // UV 
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)24);
+        // Color
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)24);
         glEnableVertexAttribArray(2);
 
-        // Color
-        /*glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, stride, (const void*)32);*/
-        /*glEnableVertexAttribArray(3);*/
+        // UV 
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_TRUE, sizeof(Vertex), (const void*)36);
+        glEnableVertexAttribArray(3);
 
         // ===================
         // Get index / vertex count

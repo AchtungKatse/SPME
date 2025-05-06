@@ -44,8 +44,8 @@ command_t map_commands[] = {
         .run = map_command_to_fbx,
     }, {
         .name = "from_glb",
-        .format = "<map.glb> <config.yaml path> <output_file>",
-        .description = "Converts a glb model to a SPM map.dat file. Note, this only changes the map.dat from a u8 extracted map file at [map_name]/dvd/map/[map_name]/map.dat. Please run u8 compile to create a spm map.bin to reinsert into the game files.",
+        .format = "<map.glb> <config.yaml path> <output_directory>",
+        .description = "Converts a glb model to a SPM map.dat file. output_directory is a u8 extracted directory with existing map data (required for cameraroad.bin, setup.bin, and skybox textures). Please run u8 compile to create a spm map.bin to reinsert into the game files.",
         .parameter_count = 3,
         .run = map_command_from_glb,
     },  {

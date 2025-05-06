@@ -254,11 +254,11 @@ namespace SPMEditor {
         "#version 330 core\n"
         "layout (location = 0) in vec3 position;\n"
         "layout (location = 1) in vec3 inNormal;\n"
-        "layout (location = 2) in vec4 inColor;\n"
+        "layout (location = 2) in vec3 inColor;\n"
         "layout (location = 3) in vec2 inUv;\n"
 
         "out vec3 normal;\n"
-        "out vec4 color;\n"
+        "out vec3 color;\n"
         "out vec2 uv;\n"
 
         "uniform mat4 model;\n"
@@ -275,7 +275,7 @@ namespace SPMEditor {
     const char* Display::s_FragmentSource = 
         "#version 330\n"
         "in vec3 normal;\n"
-        "in vec4 color;\n"
+        "in vec3 color;\n"
         "in vec2 uv;\n"
         "out vec4 FragColor;\n"
         "uniform vec3 LightDir;\n"
@@ -284,8 +284,8 @@ namespace SPMEditor {
         "void main() \n"
         "{ \n"
         "vec4 texColor = texture(_texture, uv);\n"
-        "if (color.w * texColor.w <= .0) discard;\n"
-        "FragColor = color * texColor;\n"
+        "if (texColor.w <= .0) discard;\n"
+        "FragColor = vec4(color, 1.0) * texColor;\n"
         "}";
 
 }
