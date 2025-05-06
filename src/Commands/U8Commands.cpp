@@ -6,9 +6,9 @@
 #include <filesystem>
 #include <vector>
 
-namespace SPMEditor {
+namespace SPMEditor::U8Commands {
 
-    void u8_command_compile(u32 argc, const char** argv) {
+    void Compile(u32 argc, const char** argv) {
         // Get parameters
         const char* input = argv[0];
         const char* output = argv[1];
@@ -33,7 +33,7 @@ namespace SPMEditor {
         filesystem_write_file(output, data.data(), data.size());
     }
 
-    void u8_command_extract(u32 argc, const char** argv) {
+    void Extract(u32 argc, const char** argv) {
         // Get parameters
         const char* input = argv[0];
         const char* output = argv[1];

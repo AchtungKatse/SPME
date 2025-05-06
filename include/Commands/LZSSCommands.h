@@ -1,10 +1,9 @@
 #pragma once
 
-#include "Commands/CommandType.h"
-namespace SPMEditor {
+namespace SPMEditor::LZSSCommands {
 
-    void lzss_command_decompress(u32 argc, const char** argv);
-    void lzss_command_compress(u32 argc, const char** argv);
+    void Decompress(u32 argc, const char** argv);
+    void Compress(u32 argc, const char** argv);
 
 }
 

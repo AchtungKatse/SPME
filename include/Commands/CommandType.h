@@ -7,11 +7,11 @@ namespace SPMEditor {
         const char* description;
         const u32 parameter_count;
         void (*run)(u32 argc, const char** argv);
-    } command_t;
+    } Command;
 
     typedef struct {
         const char* name;
-        command_t* commands;
+        Command* commands;
         u32 command_count;
-    } command_group_t;
+    } CommandGroup;
 }

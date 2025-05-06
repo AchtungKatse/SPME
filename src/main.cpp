@@ -9,23 +9,23 @@
 
 using namespace SPMEditor;
 
-command_t lzss_commands[] = {
+Command lzssCommands[] = {
     {
         .name = "decompress",
         .format = "<input file> <output file>",
         .description = "Decompresses an lzss compressed file.",
         .parameter_count = 2,
-        .run = lzss_command_decompress,
+        .run = LZSSCommands::Decompress,
     }, {
         .name = "compress",
         .format = "<input file> <output file>",
         .description = "Uses lzss to compress a file.",
         .parameter_count = 2,
-        .run = lzss_command_compress,
+        .run = LZSSCommands::Compress,
     },
 };
 
-command_t debug_commands[] = {
+Command debugCommands[] = {
 #ifndef SPME_NO_VIEWER
     {
         .name = "view",
@@ -37,85 +37,85 @@ command_t debug_commands[] = {
 #endif
 };
 
-command_t map_commands[] = {
+Command mapCommands[] = {
     {
         .name = "to_fbx",
         .format = "<map.bin> <output file> [map name]",
         .description = "Converts a SPM map.bin file into an FBX file. The map file should be taken from DATA/files/map.",
         .parameter_count = 2,
-        .run = map_command_to_fbx,
+        .run = MapCommands::ToFBX,
     }, {
         .name = "from_glb",
         .format = "<map.glb> <config.yaml path> <output_directory>",
         .description = "Converts a glb model to a SPM map.dat file. output_directory is a u8 extracted directory with existing map data (required for cameraroad.bin, setup.bin, and skybox textures). Please run u8 compile to create a spm map.bin to reinsert into the game files.",
         .parameter_count = 3,
-        .run = map_command_from_glb,
+        .run = MapCommands::FromGLB,
     },  {
         .name = "create_config",
         .format = "<map name> <map.glb> <output path>",
         .description = "Creates a map config from an existing model",
         .parameter_count = 3,
-        .run = map_command_create_config,
+        .run = MapCommands::CreateConfig,
     }, 
 };
 
-command_t tpl_commands[] = {
+Command tplCommands[] = {
     {
         .name = "dump",
         .format = "<texture.tpl> <output directory>",
         .description = "Writes all textures in a tpl to a directory",
         .parameter_count = 2,
-        .run = tpl_command_dump,
+        .run = TPLCommands::Dump,
     },
 };
  
-command_t u8_commands[] = {
+Command u8Commands[] = {
     {
         .name = "extract",
         .format = "<u8 file> <output directory> <compressed>",
         .description = "Extracts the contents of a u8 to a directory",
         .parameter_count = 2,
-        .run = u8_command_extract,
+        .run = U8Commands::Extract,
     }, {
         .name = "compile",
         .format = "<directory> <output file>",
         .description = "Creates a u8 archive file from a directory",
         .parameter_count = 3,
-        .run = u8_command_compile,
+        .run = U8Commands::Compile,
     },
 };
 
-command_group_t command_groups[] = {
+CommandGroup commandGroups[] = {
     {
         .name = "u8",
-        .commands = u8_commands,
-        .command_count = sizeof(u8_commands) / sizeof(command_t),
+        .commands = u8Commands,
+        .command_count = sizeof(u8Commands) / sizeof(Command),
     }, {
         .name = "tpl",
-        .commands = tpl_commands,
-        .command_count = sizeof(tpl_commands) / sizeof(command_t),
+        .commands = tplCommands,
+        .command_count = sizeof(tplCommands) / sizeof(Command),
     }, {
         .name = "map",
-        .commands = map_commands,
-        .command_count = sizeof(map_commands) / sizeof(command_t),
+        .commands = mapCommands,
+        .command_count = sizeof(mapCommands) / sizeof(Command),
     }, {
         .name = "debug",
-        .commands = debug_commands,
-        .command_count = sizeof(debug_commands) / sizeof(command_t),
+        .commands = debugCommands,
+        .command_count = sizeof(debugCommands) / sizeof(Command),
     }, {
         .name = "lzss",
-        .commands = lzss_commands,
-        .command_count = sizeof(lzss_commands) / sizeof(command_t),
+        .commands = lzssCommands,
+        .command_count = sizeof(lzssCommands) / sizeof(Command),
     }
 };
 
-constexpr u32 command_group_count = sizeof(command_groups) / sizeof(command_group_t);
+constexpr u32 commandGroupCount = sizeof(commandGroups) / sizeof(CommandGroup);
 
-char char_to_lower(char c);
-void string_to_lower(char* string);
+char CharToLower(char c);
+void StringToLower(char* string);
 
-bool find_command_group(const char* name, command_group_t** out_group);
-void display_available_commands();
+bool FindCommandGroup(const char* name, CommandGroup** out_group);
+void DisplayAvailableCommands();
 
 int main(int argc, char** argv) {
     // Initialization
@@ -123,26 +123,26 @@ int main(int argc, char** argv) {
 
     if (argc <= 2) {
         LogError("Invalid number of arguments");
-        display_available_commands();
+        DisplayAvailableCommands();
         return -1;
     }
 
     // Search for the target command group
     char* target_group = argv[1];
-    string_to_lower(target_group);
-    command_group_t* target_command_group = nullptr;
+    StringToLower(target_group);
+    CommandGroup* target_command_group = nullptr;
 
-    if (!find_command_group(target_group, &target_command_group)) {
-        display_available_commands();
+    if (!FindCommandGroup(target_group, &target_command_group)) {
+        DisplayAvailableCommands();
         return -1;
     }
 
     // Search for the command inside the group
     char* command_name = argv[2];
-    string_to_lower(command_name);
+    StringToLower(command_name);
 
     bool found_command = false;
-    const command_t* command = nullptr;
+    const Command* command = nullptr;
     for (u32 i = 0; i < target_command_group->command_count; i++) {
         if (strcmp(target_command_group->commands[i].name, command_name) == 0) {
             found_command = true;
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 
     if (!found_command) {
         LogError("Failed to find command '%s' in group '%s'."); 
-        display_available_commands();
+        DisplayAvailableCommands();
         return -1; 
     }
 
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
                 command->name, 
                 command->parameter_count, 
                 argc - 3);
-        display_available_commands();
+        DisplayAvailableCommands();
         return -1;
     }
 
@@ -178,10 +178,10 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-bool find_command_group(const char* target_group_name, command_group_t** out_group) {
+bool FindCommandGroup(const char* target_group_name, CommandGroup** out_group) {
     bool foundCommandGroup = false;
-    for (u32 i = 0; i < command_group_count; i++) {
-        command_group_t* group = &command_groups[i];
+    for (u32 i = 0; i < commandGroupCount; i++) {
+        CommandGroup* group = &commandGroups[i];
         if (strcmp(group->name, target_group_name) == 0) {
             foundCommandGroup = true;
             *out_group = group;
@@ -197,26 +197,26 @@ bool find_command_group(const char* target_group_name, command_group_t** out_gro
     return true;
 }
 
-char char_to_lower(char c) {
+char CharToLower(char c) {
     if (c >= 'A' && c <= 'Z') 
         return c + ('a' - 'A');
     return c;
 }
 
-void string_to_lower(char* string) {
+void StringToLower(char* string) {
     u32 len = strlen(string);
     for (u32 i = 0; i < len; i ++) {
-        string[i] = char_to_lower(string[i]);
+        string[i] = CharToLower(string[i]);
     }
 }
 
-void display_available_commands() {
+void DisplayAvailableCommands() {
     LogInfo("Available commands are: ");
-    for (u32 i = 0; i < command_group_count; i++) {
-        LogInfo("\t%s", command_groups[i].name);
+    for (u32 i = 0; i < commandGroupCount; i++) {
+        LogInfo("\t%s", commandGroups[i].name);
 
-        for (u32 c = 0; c < command_groups[i].command_count; c++) {
-            command_t* command = &command_groups[i].commands[c];
+        for (u32 c = 0; c < commandGroups[i].command_count; c++) {
+            Command* command = &commandGroups[i].commands[c];
             LogInfo("\t\t%s", command->name);
             LogInfo("\t\tFormat:      %s", command->format);
             LogInfo("\t\tDescription: %s", command->description);

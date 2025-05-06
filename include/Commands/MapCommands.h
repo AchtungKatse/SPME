@@ -1,9 +1,9 @@
 #pragma once
 
-namespace SPMEditor {
+namespace SPMEditor::MapCommands {
 
-    void map_command_to_fbx(u32 argc, const char** argv);
-    void map_command_from_glb(u32 argc, const char** argv);
-    void map_command_create_config(u32 argc, const char** argv);
+    void ToFBX(u32 argc, const char** argv);
+    void FromGLB(u32 argc, const char** argv);
+    void CreateConfig(u32 argc, const char** argv);
 
 }

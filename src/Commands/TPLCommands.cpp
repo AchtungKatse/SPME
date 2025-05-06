@@ -4,8 +4,8 @@
 #include <cstdio>
 #include <filesystem>
 
-namespace SPMEditor {
-    void tpl_command_dump(u32 argc, const char** argv) {
+namespace SPMEditor::TPLCommands {
+    void Dump(u32 argc, const char** argv) {
         const char* input_file = argv[0];
         const char* output_directory = argv[1];
 

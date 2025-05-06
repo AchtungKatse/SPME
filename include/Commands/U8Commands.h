@@ -1,7 +1,7 @@
 #pragma once
 
-namespace SPMEditor {
-    void u8_command_extract(u32 argc, const char** argv);
-    void u8_command_compile(u32 argc, const char** argv);
+namespace SPMEditor::U8Commands {
+    void Extract(u32 argc, const char** argv);
+    void Compile(u32 argc, const char** argv);
 }
 

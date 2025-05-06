@@ -6,9 +6,9 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 
-namespace SPMEditor {
+namespace SPMEditor::MapCommands {
 
-    void map_command_to_fbx(u32 argc, const char** argv) {
+    void ToFBX(u32 argc, const char** argv) {
         const char* inputFile = argv[0];
         const char* outputFile = argv[1];
         LogInfo("Converting file \"%s\"", inputFile);
@@ -26,7 +26,7 @@ namespace SPMEditor {
         Assert(exportSuccess == aiReturn_SUCCESS, "Failed to export %s", level.name.c_str());
     }
 
-    void map_command_from_glb(u32 argc, const char** argv) {
+    void FromGLB(u32 argc, const char** argv) {
         const char* input = argv[0];
         const char* configPath = argv[1];
         const char* output = argv[2];
@@ -44,7 +44,7 @@ namespace SPMEditor {
         exporter->Write(scene, config, output);
     }
 
-    void map_command_create_config(u32 argc, const char** argv) {
+    void CreateConfig(u32 argc, const char** argv) {
         const char* mapName = argv[0];
         const char* modelPath = argv[1];
         const char* configPath = argv[2];

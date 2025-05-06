@@ -3,9 +3,9 @@
 #include "core/filesystem.h"
 #include "Compressors/LZSS.h"
 
-namespace SPMEditor {
+namespace SPMEditor::LZSSCommands {
 
-    void lzss_command_compress(u32 argc, const char** argv) {
+    void Compress(u32 argc, const char** argv) {
         const char* input = argv[0];
         const char* output = argv[1];
 
@@ -16,7 +16,7 @@ namespace SPMEditor {
         filesystem_write_file(output, compressed_data.data(), file_handle.size);
     }
 
-    void lzss_command_decompress(u32 argc, const char** argv) {
+    void Decompress(u32 argc, const char** argv) {
         const char* input = argv[0];
         const char* output = argv[1];
 
