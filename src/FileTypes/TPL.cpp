@@ -412,11 +412,12 @@ namespace SPMEditor {
             u32 pixelDataSize = header.width * header.height * 4;
             if (info.mTexture->mHeight == 0) {
                 // texture is compressed
-                int channels;
-                int height;
-                int width;
+                int channels = 0;
+                int height = 0;
+                int width = 0;
                 u8* decompressedPixels = stbi_load_from_memory(pixelData, info.mTexture->mWidth, &width, &height, &channels, 4);
                 Assert(pixelData, "Failed to load image %d", i);
+                LogInfo("writing image '%s' with %d channels", info.mTexture->mFilename.C_Str(), channels);
 
                 images[i].header.width = width;
                 images[i].header.height = height;
@@ -425,15 +426,8 @@ namespace SPMEditor {
                 // Copy pixel data into image data
                 images[i].pixels.resize(width * height);
                 u8* imagePixelData = (u8*)images[i].pixels.data();
-                if (channels == 4) {
-                    memcpy(imagePixelData, decompressedPixels, height * width * 4);
-                } else {
-                    for (int j = 0; j < width * height; j++) {
-                        for (int w = 0; w < channels; w++) {
-                            imagePixelData[j * 4 + w] = decompressedPixels [j * channels + w];
-                        }
-                    }
-                }
+                // NOTE: This only works because we force the number of channels to 4
+                memcpy(imagePixelData, decompressedPixels, height * width * 4);
 
                 // Free stb image data if the file was compressed
                 stbi_image_free(decompressedPixels);

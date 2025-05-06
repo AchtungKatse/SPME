@@ -251,9 +251,9 @@ namespace SPMEditor {
             int index = pair.second;
             Color* outColor = &mVCDTable.colors.Get(mData + 0x20)[index];
             outColor->r = ByteSwap((u8)(color.r * 255));
-            outColor->g = ByteSwap((u8)(color.r * 255));
-            outColor->b = ByteSwap((u8)(color.r * 255));
-            outColor->a = ByteSwap((u8)(color.r * 255));
+            outColor->g = ByteSwap((u8)(color.g * 255));
+            outColor->b = ByteSwap((u8)(color.b * 255));
+            outColor->a = ByteSwap((u8)(color.a * 255));
         }
 
         AddPadding(0x20);
@@ -292,9 +292,12 @@ namespace SPMEditor {
                         LogInfo("Adding vertex (%f, %f, %f) to vertex table at index %u", vertex.x, vertex.y, vertex.z, mVertexTable.size());
                     mVertexTable.emplace(vertex, mVertexTable.size());
                 }
-                if (mesh->HasVertexColors(0))
-                    if (!mColorTable.contains(mesh->mColors[0][v]))
+                if (mesh->HasVertexColors(0)) {
+                    aiColor4D color = mesh->mColors[0][v];
+                    if (!mColorTable.contains(color)) {
                         mColorTable.emplace(mesh->mColors[0][v], mColorTable.size());
+                    }
+                }
 
                 if (mesh->mNormals) {
                     if (!mNormalTable.contains(mesh->mNormals[v])) {
@@ -566,7 +569,7 @@ namespace SPMEditor {
 
         for (size_t i = 0; i < node->mNumMeshes; i++) {
             const aiMesh* mesh = mScene->mMeshes[node->mMeshes[i]];
-            LogInfo("Mesh has material index %u ('%s')", mesh->mMaterialIndex, mScene->mMaterials[mesh->mMaterialIndex]->GetName().C_Str());
+            LogInfo("Mesh '%s' has material index %u ('%s')", node->mName.C_Str(), mesh->mMaterialIndex, mScene->mMaterials[mesh->mMaterialIndex]->GetName().C_Str());
             AppendPointer(mMaterialTable[mesh->mMaterialIndex].materialOffset);
             AppendPointer(mMeshTable[node->mMeshes[i]]);
         }

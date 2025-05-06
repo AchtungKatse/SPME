@@ -78,7 +78,7 @@ namespace SPMEditor {
 
         Section infoSection = FindSection("information", sectionTableOffset, header.sectionCount);
         std::vector<aiMesh*> meshes;
-        sCurrentScene->mRootNode = ReadInfo(infoSection.fileOffset, meshes);
+        sCurrentScene->mRootNode = ReadInfoSection(infoSection.fileOffset, meshes);
         sCurrentScene->mNumMeshes = meshes.size();
         sCurrentScene->mMeshes = new aiMesh*[meshes.size()];
         for (uint i = 0; i < sCurrentScene->mNumMeshes; i++) {
@@ -172,7 +172,7 @@ namespace SPMEditor {
         return names;
     }
 
-    aiNode* LevelGeometry::ReadInfo(int offset, std::vector<aiMesh*>& meshes) {
+    aiNode* LevelGeometry::ReadInfoSection(int offset, std::vector<aiMesh*>& meshes) {
         // Read the header
         int* headerPtr = (int*)(sData + offset);
 
@@ -308,8 +308,9 @@ namespace SPMEditor {
 
         mesh->mNormals = new aiVector3t<float>[vertices.size()];
 
-        if ((header.vertexAttributes & VERTEX_ATTRIBUTE_COLOR) == 0) 
+        if ((header.vertexAttributes & VERTEX_ATTRIBUTE_COLOR) != 0)  {
             mesh->mColors[0] = new aiColor4D[vertices.size()];
+        }
 
         for (size_t i = 0; i < vertices.size(); i++) {
             mesh->mVertices[i] = vertices[i].position;
@@ -317,7 +318,7 @@ namespace SPMEditor {
             mesh->mNormals[i] = -mesh->mNormals[i].Normalize();
             mesh->mTextureCoords[0][i] = aiVector3D(vertices[i].uv.x, vertices[i].uv.y, 0);
 
-            if ((header.vertexAttributes & VERTEX_ATTRIBUTE_COLOR) == 0) {
+            if ((header.vertexAttributes & VERTEX_ATTRIBUTE_COLOR) != 0) {
                 mesh->mColors[0][i] = aiColor4D((float)vertices[i].color.r / 255, (float)vertices[i].color.g / 255, (float)vertices[i].color.b / 255, (float)vertices[i].color.a / 255);
             }
         }

@@ -25,7 +25,7 @@ namespace SPMEditor {
             static Section FindSection(const std::string& name, int sectionTableOffset, int sectionCount);
             static void ReadSection(Section section);
             static void ReadMaterialNameTable(int tableOffset, int textureCount);
-            static aiNode* ReadInfo(int offset, std::vector<aiMesh*>& meshes);
+            static aiNode* ReadInfoSection(int offset, std::vector<aiMesh*>& meshes);
             static aiNode* ReadObject(int objectOffset, int& nextSibling, std::vector<aiMesh*>& meshes, std::string indent = "");
             static aiMesh* ReadMesh(int offset);
             static void ReadFogTable(int offset);
