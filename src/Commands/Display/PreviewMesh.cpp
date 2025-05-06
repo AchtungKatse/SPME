@@ -1,3 +1,4 @@
+#ifndef SPME_NO_VIEWER
 #include "Commands/Display/PreviewMesh.h"
 #include "assimp/color4.h"
 #include "glad/glad.h"
@@ -191,3 +192,4 @@ namespace SPMEditor {
         glBindVertexArray(0);
     }
 }
+#endif

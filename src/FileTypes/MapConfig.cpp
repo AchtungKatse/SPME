@@ -51,7 +51,7 @@ namespace SPMEditor {
     // Private functions
     void WriteMapConfigToFile(const MapConfig* config, const char* outFile);
 
-    void MapConfig::CreateFromModel(const char* modelPath, const char* outputPath) {
+    void MapConfig::CreateFromModel(const char* mapName, const char* modelPath, const char* outputPath) {
         // Load the scene
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(modelPath, aiPostProcessSteps::aiProcess_Triangulate | aiProcess_FlipWindingOrder | aiPostProcessSteps::aiProcess_EmbedTextures | aiPostProcessSteps::aiProcess_ValidateDataStructure | aiPostProcessSteps::aiProcess_FindInvalidData | aiPostProcessSteps::aiProcess_ForceGenNormals | aiProcess_JoinIdenticalVertices | aiProcess_GenUVCoords);
@@ -84,7 +84,7 @@ namespace SPMEditor {
 
         // Create Map Config
         MapConfig config = {
-            .mMapName = scene->mName.C_Str(),
+            .mMapName = mapName,
             .mTextureConfigs = textureConfigs,
             .mMaterialConfigs = materialConfigs,
         };
@@ -103,11 +103,11 @@ namespace SPMEditor {
         return config;
     }
 
-    void WriteMapConfigToFile(const char* mapName, const MapConfig* config, const char* outFile) {
+    void WriteMapConfigToFile(const MapConfig* config, const char* outFile) {
         YAML::Node node;
         node["TextureConfigs"] = config->mTextureConfigs;
         node["MaterialConfigs"] = config->mMaterialConfigs;
-        node["MapName"] = mapName;
+        node["MapName"] = config->mMapName;
 
         std::ofstream outputStream(outFile);
         outputStream << node;

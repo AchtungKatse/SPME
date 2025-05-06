@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #pragma once
 #include "Commands/Display/Shader.h"
 #include "glad/glad.h"
@@ -38,4 +40,7 @@ namespace SPMEditor
             bool m_UseRenderContext;
     };
 }
+
+
+#endif
 

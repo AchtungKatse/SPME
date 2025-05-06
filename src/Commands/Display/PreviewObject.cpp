@@ -1,6 +1,9 @@
+#ifndef SPME_NO_VIEWER
+
 #include "Commands/Display/PreviewObject.h"
 #include "Commands/Display/ShaderProgram.h"
 #include "assimp/material.h"
+#include "assimp/vector3.h"
 #include "glm/ext/matrix_float4x4.hpp"
 #include "glm/ext/matrix_transform.hpp"
 
@@ -14,7 +17,19 @@ namespace SPMEditor {
             return;
 
         // Get transform data (incompatable by default w/ glm)
-        node->mTransformation.Decompose(*(aiVector3D*)&m_Scale, *(aiVector3D*)&m_Rotation, *(aiVector3D*)&m_Position);
+        aiVector3D _scale, _rotation, _position;
+        node->mTransformation.Decompose(_scale, _rotation, _position);
+        m_Scale.x = _scale.x;
+        m_Scale.y = _scale.y;
+        m_Scale.z = _scale.z;
+
+        m_Rotation.x = _rotation.x;
+        m_Rotation.y = _rotation.y;
+        m_Rotation.z = _rotation.z;
+
+        m_Position.x = _position.x;
+        m_Position.y = _position.y;
+        m_Position.z = _position.z;
 
         m_Meshes.reserve(node->mNumMeshes);
         m_Children.reserve(node->mNumChildren);
@@ -86,3 +101,6 @@ namespace SPMEditor {
     PreviewObject::~PreviewObject() {
     }
 }
+
+#endif
+

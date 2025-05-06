@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #pragma once
 #include "Commands/Display/PreviewMesh.h"
 #include "Commands/Display/PreviewTexture.h"
@@ -35,3 +37,6 @@ namespace SPMEditor {
             const char* name;
     };
 }
+
+#endif
+

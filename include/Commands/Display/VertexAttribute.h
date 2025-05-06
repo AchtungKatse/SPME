@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #pragma once
 
 namespace SPMEditor 
@@ -39,4 +41,7 @@ namespace SPMEditor
         Vector2 uv;
     };
 }
+
+
+#endif
 

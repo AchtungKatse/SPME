@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #include "Commands/debug_commands.h"
 #include "core/filesystem.h"
 #include "core/Logging.h"
@@ -13,3 +15,5 @@ namespace SPMEditor {
         Display::DisplayLevel(level);
     }
 }
+
+#endif

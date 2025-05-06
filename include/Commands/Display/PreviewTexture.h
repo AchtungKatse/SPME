@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #pragma once
 
 #include <GL/gl.h>
@@ -54,4 +56,7 @@ namespace SPMEditor
             void* m_Pixels;
     };
 }
+
+
+#endif
 

@@ -1,3 +1,4 @@
+#ifndef SPME_NO_VIEWER
 #include "Commands/Display/Display.h"
 #include "Commands/Display/PreviewObject.h"
 #include "Commands/Display/PreviewTexture.h"
@@ -7,6 +8,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/quaternion.h"
 #include "glad/glad.h"
+#include "glm/detail/type_quat.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/scalar_constants.hpp"
@@ -41,8 +43,10 @@ namespace SPMEditor {
                 Shader::CreateFromSource("Vertex", s_VertexSource, ShaderType::Vertex),
                 Shader::CreateFromSource("Fragment", s_FragmentSource, ShaderType::Fragment)});
 
-        glm::vec3 lightDir = glm::normalize(glm::vec3(.707, -.707, .5));
+        glm::vec3 _lightDir = glm::normalize(glm::vec3(.707, -.707, .5));
         defaultShader.UseProgram();
+
+        Vector3 lightDir(_lightDir.x, _lightDir.y, _lightDir.z);
         defaultShader.SetUniformVector3("LightDir", *(Vector3*)&lightDir);
 
         // Load textures
@@ -101,7 +105,9 @@ namespace SPMEditor {
                             const auto& key = channel->mPositionKeys[k];
                             const auto& nextKey = channel->mPositionKeys[k + 1];
                             auto position = (key.mValue + (nextKey.mValue - key.mValue) * (float)(targetTime - key.mTime) / (float)(nextKey.mTime - key.mTime));
-                            pos = *(glm::vec3*)&position;
+                            pos.x = position.x;
+                            pos.y = position.y;
+                            pos.z = position.z;
                         }
 
                     for (u32 k = 0; k < channel->mNumRotationKeys; k++)
@@ -112,7 +118,13 @@ namespace SPMEditor {
                         {
                             aiQuaternion quat;
                             key.mValue.Interpolate(quat, key.mValue, nextKey.mValue, (float)(targetTime - key.mTime) / (float)(nextKey.mTime - key.mTime));
-                            auto euler = glm::eulerAngles(*(glm::quat*)&quat);
+                            glm::quat _quat;
+                            _quat.x = quat.x;
+                            _quat.y = quat.y;
+                            _quat.z = quat.z;
+                            _quat.w = quat.w;
+
+                            glm::quat euler = glm::eulerAngles(_quat);
                             rot.x = euler.z;
                             rot.y = euler.y;
                             rot.z = euler.x;
@@ -124,10 +136,14 @@ namespace SPMEditor {
                             const auto& key = channel->mScalingKeys[k];
                             const auto& nextKey = channel->mScalingKeys[k + 1];
                             auto scaling = (key.mValue + (nextKey.mValue - key.mValue) * (float)(targetTime - key.mTime) / (float)(nextKey.mTime - key.mTime));
-                            scale = *(glm::vec3*)&scaling;
+                            scale.x = scaling.x;
+                            scale.y = scaling.y;
+                            scale.z = scaling.z;
                         }
 
-                    pos -= *(glm::vec3*)&channel->mPositionKeys[0].mValue;
+                    pos.x -= channel->mPositionKeys[0].mValue.x;
+                    pos.y -= channel->mPositionKeys[0].mValue.y;
+                    pos.z -= channel->mPositionKeys[0].mValue.z;
                     rot /= 180 * glm::pi<float>();
 
                     const char* nodeName = channel->mNodeName.C_Str();
@@ -289,3 +305,4 @@ namespace SPMEditor {
         "}";
 
 }
+#endif

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <filesystem>
 #include <algorithm>
+#include <string>
 #include "core/filesystem.h"
 
 namespace SPMEditor {
@@ -211,7 +212,7 @@ namespace SPMEditor {
                 continue;
 
             std::filesystem::path filePath(entry);
-            FileHandle fileHandle = filesystem_read_file(filePath.c_str());
+            FileHandle fileHandle = filesystem_read_file((const char*)filePath.u8string().c_str());
             std::vector<U8File>& files = dir.files;
             files.push_back({});
             U8File& file = files[files.size() - 1];

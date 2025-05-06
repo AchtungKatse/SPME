@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #include "Commands/Display/VertexAttribute.h"
 
 namespace SPMEditor 
@@ -78,4 +80,7 @@ namespace SPMEditor
         position(position), normal(normal), color(color), uv(uv)
     { }
 }
+
+
+#endif
 

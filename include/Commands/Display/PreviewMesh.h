@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #pragma once
 
 #include "Commands/Display/VertexAttribute.h"
@@ -26,3 +28,6 @@ namespace SPMEditor {
             uint m_VertexCount;
     };
 }
+
+#endif
+

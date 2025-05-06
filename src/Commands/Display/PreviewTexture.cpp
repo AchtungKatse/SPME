@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #include "Commands/Display/PreviewTexture.h"
 #include "stb_image.h"
 #include <GL/gl.h>
@@ -112,4 +114,7 @@ namespace SPMEditor
         glTextureSubImage2D(m_TextureID, level, xOffset, yOffset, width, height, (GLuint)format, GL_UNSIGNED_BYTE, data);
     }
 }
+
+
+#endif
 

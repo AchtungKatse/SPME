@@ -72,7 +72,7 @@ Arguments in square brackets are \[optional] while arguments in brackets are \<r
 2. Select a map to modify and run "./SPME u8 extract <map file> <output directory> true".
     - E.x. "./SPME u8 extract he1_01.bin he1_01 true"
 3. Convert the map to an FBX by running "./SPME map to_fbx <map.dat> <output file> \[(optionally) map name\]"
-    - E.x. "./SPME map to_fbx he1_01/dvd/map/he1_01/map.dat he1_01.fbx \[he1_01]"
+    - E.x. "./SPME map to_fbx he1_01.bin he1_01.fbx \[he1_01]"
     - If you did not name the output directory in step 1 to the same name as the map file (i.e. he1_01.bin -> he1_01), you may need to specify it at the end of the above command.
 
 The map file is now ready to be imported into a 3D modeling program such as Blender. Please note, graphcial issues may occur due to materials not applying vertex colors.
@@ -97,7 +97,7 @@ It is important to note that SPME has only been tested with .glb files since the
 
 ### Command Example Cheat Sheet
 1. ./SPME u8 extract he1_01.bin he1_01 true
-2. ./SPME map to_fbx he1_01/dvd/map/he1_01/map.dat he1_01.fbx \[he1_01]
+2. ./SPME map to_fbx he1_01.bin he1_01.fbx \[he1_01]
 3. ./SPME map generate_config he1_01 he1_01_mod.glb mod.yaml
 4. ./SPME map from_glb he1_01.glb mod.yaml he1_01
 5. ./SPME u8 compile he1_01 he1_01.bin true

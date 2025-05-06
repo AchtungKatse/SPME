@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #pragma once
 #include "Commands/Display/PreviewObject.h"
 #include "FileTypes/LevelData.h"
@@ -27,3 +29,6 @@ namespace SPMEditor {
             static const char* s_FragmentSource;
     };
 }
+
+#endif
+

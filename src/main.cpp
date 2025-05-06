@@ -26,6 +26,7 @@ command_t lzss_commands[] = {
 };
 
 command_t debug_commands[] = {
+#ifndef SPME_NO_VIEWER
     {
         .name = "view",
         .format = "<map.bin>",
@@ -33,6 +34,7 @@ command_t debug_commands[] = {
         .parameter_count = 1,
         .run = debug_command_view,
     },
+#endif
 };
 
 command_t map_commands[] = {

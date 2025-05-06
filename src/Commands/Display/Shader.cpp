@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #include "Commands/Display/Shader.h"
 
 namespace SPMEditor
@@ -164,4 +166,7 @@ namespace SPMEditor
     /*FragmentShader::FragmentShader(const char* shaderName, const char* filePath) : Shader(shaderName, filePath, ShaderType::Fragment) { }*/
     /*VertexShader::VertexShader(const char* shaderName, const char* filePath) : Shader(shaderName, filePath, ShaderType::Vertex) { }*/
 }
+
+
+#endif
 

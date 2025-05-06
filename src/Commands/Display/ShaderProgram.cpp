@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #include "Commands/Display/ShaderProgram.h"
 #include "glm/ext.hpp"
 #include "glm/glm.hpp"
@@ -165,4 +167,7 @@ namespace SPMEditor
     /*    glUniform4fv(GetUniform(name), 1, (float*)&value);*/
     /*}*/
 }
+
+
+#endif
 

@@ -1,3 +1,5 @@
+#ifndef SPME_NO_VIEWER
+
 #pragma once
 #include "glad/glad.h"
 
@@ -29,3 +31,6 @@ namespace SPMEditor
             unsigned int m_ShaderIndex;
     };
 }
+
+#endif
+
