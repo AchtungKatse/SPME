@@ -1,0 +1,53 @@
+enum TPLPaletteFormat : u32 {
+    IA8,
+    RGB565,
+    RGBA32,
+};
+
+struct TPLPaletteHeader {
+    be u16 entrySize;
+    u8 unpacked;
+    u8 pad;
+    be TPLPaletteFormat format;
+    be u32 dataAddress;
+};
+
+struct TPLImageHeader {
+    be u16 height;
+    be u16 width;
+    be u32 format;
+    be u32 imageDataAddress;
+    be u32 wrapS;
+    be u32 wrapT;
+    be u32 minFilter;
+    be u32 magFilter;
+    be float LODBias;
+    u8 edgeLODEnable;
+    u8 minLOD;
+    u8 maxLOD;
+    u8 unpacked;    
+} [[single_color]];
+
+struct TPLImageOffset {
+    be u32 headerOffset;
+    be u32 paletteOffset;
+    
+    if (paletteOffset) {
+        TPLPaletteHeader palette @ paletteOffset;
+    }
+    TPLImageHeader header @ headerOffset;
+};
+
+struct TPLFileHeader {
+    be u32 magic;
+    be u32 imageCount;
+    be u32 imageTableOffset;
+    
+    TPLImageOffset imageOffsets[imageCount] @ imageTableOffset;
+};
+
+struct TPL {
+
+};
+
+TPLFileHeader header @ 0x0;

@@ -1,0 +1,320 @@
+#include <std/string>
+#include <std/math>
+#pragma eval_depth 128
+
+struct FileHeader {
+    be u32 fileLength;
+    be u32 fatPointer;
+    be u32 fatEntryCount;
+    be u32 sectionCount;
+    u8 pad[0x10];
+};
+
+
+FileHeader fileHeader @ 0x00;
+u32 sectionOffset = fileHeader.fatEntryCount * 4 + fileHeader.fatPointer + sizeof(fileHeader);
+
+struct Array<T> {
+    be u32 count;
+    T data[count];
+};
+
+struct Vector3<T> {
+    T x, y, z;
+} [[static, single_color]];
+
+struct Vector2<T> {
+    T x, y;
+} [[static, single_color]];
+
+struct Color {
+    u8 r;
+    u8 g;
+    u8 b;
+    u8 a;
+} [[color(std::format("{:02X}{:02X}{:02X}", r, g, b))]];;
+
+struct MapTexture {
+    be u32 nameOffset;
+    u8 unknown[4];
+    be u16 width;
+    be u16 height;
+    be u32 unkown_5;    
+    
+    char name[] @ nameOffset + 0x20;
+} [[name(name)]];
+
+
+struct MapTextureInfo {
+    be u32 dataOffset;
+    be u32 pad;
+    u8 unknown[4];
+
+    MapTexture texture @ dataOffset + 0x20;
+};
+
+struct Material {
+    be u32 nameOffset;
+    Color color;
+    bool useVertexColor;
+    bool unknowns[2];
+    bool useTexture;
+    be u32 textureInfoPtr;
+    be float unkownFloats[0x41];
+    
+    char name[] @ nameOffset + 0x20;
+    
+    if (textureInfoPtr) 
+        MapTextureInfo texture @ textureInfoPtr + 0x20;
+} [[name(name)]];
+
+struct VertexStripHeader {
+    be u32 offset;
+    be u32 length;
+    
+    be u8 constant @ offset + sizeof(FileHeader);
+    be u16 vertexCount @ offset + 1 + sizeof(FileHeader);
+    be u16 data[length / 2 - 2] @ offset + sizeof(FileHeader) + sizeof(constant) + 2;
+} [[single_color]];
+
+struct MeshHeader {
+    be u32 constant;
+    be u32 entryCount;
+    be u32 vertexAttributes;
+    be u32 VCDTable;
+    
+    VertexStripHeader strips[entryCount] @ $;
+} [[single_color]];
+
+
+struct MeshInstance {
+    be u32 materialOffset;
+    be u32 meshOffset;
+    if (meshOffset != 0)
+        MeshHeader mesh @ meshOffset + sizeof(FileHeader);
+};
+
+
+struct Object {
+    be u32 nameOffset;
+    be u32 type;
+    be u32 parentObject;
+    be u32 children;
+    be u32 nextSibling;
+    be u32 lastSibling;
+    Vector3<be float> scale;
+    Vector3<be float> rotation;
+    Vector3<be float> position;
+    
+    Vector3<be float> boundsMin;
+    Vector3<be float> boundsMax;
+    
+    be u32 pad;
+    be u32 submeshPtr;
+    be u32 meshCount;
+    
+    MeshInstance meshes[std::math::max(1, meshCount)];
+    char name[] @ nameOffset + 0x20;
+    
+    if (children != 0)
+        Object child @ children + sizeof(FileHeader);
+    if (nextSibling != 0)
+        Object nextChild @ nextSibling + sizeof(FileHeader);
+} [[name(name)]];
+
+namespace Animation {
+
+   struct PropertyCurve {
+        be float start;
+        be float unknown_1;
+        be float increment;
+        be float unkown_2;
+        be float _padding;   
+   } [[single_color]];
+   
+   struct PropertyCurve2D {
+        PropertyCurve x, y;
+   };
+   
+   struct PropertyCurve3D {
+        PropertyCurve x,y,z;
+   };
+   
+   struct TransformAnimationKeyframe {
+        be float startFrame;
+        PropertyCurve3D position, rotation, scale;
+        float unknowns[0x3C];
+   };
+   
+   struct TransformAnimation {
+        be u32 nameOffset;
+        be float unkown[6];
+        Vector3<be float> scale;
+        Vector3<be float> rotation;
+        Vector3<be float> position;
+        be float unknown_2[6];
+        
+        Array<TransformAnimationKeyframe> keyframes;
+        
+        //char name[] @ nameOffset + sizeof(FileHeader);
+   };
+   
+   struct MaterialAnimationKeyframe {
+        be float startFrame;
+        PropertyCurve2D offset, scale;
+        be float unkown_1[5];
+   };
+   
+   struct MaterialAnimation {
+        be u32 nameOffset; 
+        be float unkown_1[3];
+        Array<MaterialAnimationKeyframe> keyframes;
+   };
+   
+   struct AnimationHeader {
+        be u32 nameOffset; 
+        be u32 constant;
+        be float frameCount;
+        be u32 transformAnimationOffset;
+        be u32 materialAnimationOffset;
+        
+        be u32 pad[5];
+        
+        char name[] @ nameOffset + sizeof(FileHeader);
+        if (transformAnimationOffset) {
+            Array<be u32> transformAnimationPtrs @ transformAnimationOffset + sizeof(FileHeader);
+            TransformAnimation transformAnimations[transformAnimationPtrs.count] @ addressof(transformAnimationPtrs) + sizeof(transformAnimationPtrs); 
+        } 
+        if (materialAnimationOffset) {
+            Array<be u32> materialAnimationPtrs @ materialAnimationOffset + sizeof(FileHeader);
+            MaterialAnimation materialAnimations[materialAnimationPtrs.count] @ addressof(materialAnimationPtrs) + sizeof(materialAnimationPtrs); 
+        } 
+   };
+}
+
+
+namespace Section {
+
+    struct Info {    
+        be u32 version;
+        be u32 objectHeirarchy;
+        be u32 rootObjName;
+        be u32 rootColName;
+        be u32 timestamp;
+        
+        char version_text[] @ version + 0x20;
+        char rootOnjName_text[] @ rootObjName + 0x20;
+        char rootColName_text[] @ rootColName + 0x20;
+        char timestamp_text[] @ timestamp + 0x20;    
+    } [[static]];
+    
+    struct TextureName {
+        be u32 nameOffset;
+        char name[] @ nameOffset + 0x20;
+    } [[name(name)]];
+
+    struct TextureTable {
+        be u32 textureCount;
+        TextureName textureNames[textureCount];
+        MapTexture texture[textureCount] @ 0x34;
+        MapTextureInfo infos[textureCount] @ 0x2E4;
+    };
+    
+    struct MaterialNameEntry {
+        be u32 nameOffset;
+        be u32 materialOffset;
+        
+        char name[] @ nameOffset + 0x20;
+        Material material @ materialOffset + 0x20;
+    } [[name(name)]];
+    
+    struct MaterialNameTable {
+        be u32 count;
+        MaterialNameEntry entries[count];    
+    };
+    
+    struct Section {
+        u8* data : be u32;
+        be u32 nameOffset;
+        char name[] @ nameOffset + sectionOffset + fileHeader.sectionCount * 8;
+    };
+    
+    struct VCDTable {
+        be u32 vertexOffset;
+        be u32 lightOffset;
+        be u32 unkown_1;
+        be u32 colorsOffset;
+        be u32 unkown_2;
+        be u32 unknown_3;
+        be u32 uvOffset;
+        be u32 unkonws_4[10];
+        be u32 vertexScale;
+        be u32 uvScale;
+        
+        Array<Vector3<be u16>> vertices @ vertexOffset + sizeof(FileHeader);
+        Array<u24> lights @ lightOffset + sizeof(FileHeader);
+        Array<Color> colors @ colorsOffset + sizeof(FileHeader);
+        Array<Vector2<be u16>> uvs @ uvOffset + sizeof(FileHeader);
+    } [[static]];
+    
+   struct LightTable {
+        Array<Color> colors;
+   }; 
+   
+   struct FogEntry {
+        be float start;
+        be float end;
+        Color color; // Might be near / far colors
+        Color unknown;
+   };
+   struct FogTable {
+        Array<FogEntry> entries;
+   };
+   
+   struct AnimationTable {
+        be u32 count;
+        be u32 headerOffsets[count];
+        
+        Animation::AnimationHeader headers[count] @ sizeof(headerOffsets) + addressof(headerOffsets);
+    };
+
+    Section sections[fileHeader.sectionCount] @ sectionOffset;
+}
+                
+fn FindSection(str name) {
+    for (u32 i = 0, i < fileHeader.sectionCount, i = i + 1) {
+        if (name == std::string::to_string(sections[i].name)) {
+        std::print("Found section '{}' at 0x{:x} ({})", name, addressof(sections[i].data), i);
+            return addressof(sections[i].data) + sizeof(FileHeader);
+        }
+    }
+    
+    std::print("Failed to find section '{}'", name);
+    
+    return -1;
+};
+
+fn ReadAnimTable(Section::AnimationTable animTable) {
+    u32 count @ address;
+    for (u32 i = 0, i < count, i = i + 1) {
+        
+    }
+};
+
+
+Section::TextureTable textureTable @ FindSection("texture_table");
+Section::MaterialNameTable materialTable @ FindSection("material_name_table");
+Section::Info infoSection @ FindSection("information");
+Section::VCDTable vcdTable @ FindSection("vcd_table");
+Section::LightTable lightTable @ FindSection("light_table");
+Section::FogTable fogTable @ FindSection("fog_table");
+Section::AnimationTable animationTable @ FindSection("animation_table");
+
+Object rootObject @ infoSection.objectHeirarchy + sizeof(FileHeader);
+
+struct pointer {
+    be u32 address;
+    be u32 pointer @ address + 0x20;
+} [[color("FF0000")]];
+
+pointer pointers[fileHeader.fatEntryCount] @ fileHeader.fatPointer + 0x20;
