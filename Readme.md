@@ -81,6 +81,7 @@ From here, the map can be edited or optionally created from scratch.
 
 ### Importing Models Into SPM
 It is important to note that SPME has only been tested with .glb files since they allow for material data and embedded textures.
+
 4. Export the geometry to a glb file. The recommended settings for blender are
     1. "Data/Mesh/Vertex Colors/Export Active Vertex Colors"    on
     1. "Data/Mesh/Vertex Colors/Export All Vertex Colors"       on
